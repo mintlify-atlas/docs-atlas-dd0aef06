@@ -204,6 +204,50 @@ While the funeral is active:
 4. **Countdown pressure** — The ticking timer creates awareness of time passing
 5. **Shameful escape** — The "buy anyway" button requires acknowledging lack of self-control
 
+## After 48 hours: the clarity screen
+
+When the countdown reaches zero, the funeral view is replaced by a **clarity screen** that asks you to make a final decision with a clear mind.
+
+### What you see
+
+The clarity screen displays:
+
+- **Success indicator** — A green checkmark in a pulsing circle, acknowledging that you've successfully waited
+- **Message** — "The impulse has passed." Reinforcing that you've completed the intervention
+- **Reflection prompt** — "You waited 48 hours. If you still want this, it's a deliberate choice—not a reflex."
+- **Product recap** — Small card showing the product image, title, and price
+- **Two action buttons:**
+  - **"Purchase with clarity"** — Opens the product page (typically on eBay) in a new tab
+  - **"I don't want it anymore"** — Dismisses the funeral and clears the state
+
+<Info>
+  The clarity screen validates your patience while making both choices equally accessible—no shame attached to either decision.
+</Info>
+
+### Making your choice
+
+#### If you decide to buy
+
+Clicking **"Purchase with clarity"** will:
+1. Open the product URL in a new browser tab
+2. Clear the funeral state from localStorage
+3. Return you to the normal app interface
+
+This acknowledges that after 48 hours of reflection, your purchase is intentional.
+
+#### If you decide not to buy
+
+Clicking **"I don't want it anymore"** will:
+1. Clear the funeral state immediately
+2. Return you to the chat interface
+3. Free you to continue using the app normally
+
+Most users choose this option—the intervention works.
+
+<Tip>
+  The clarity screen doesn't automatically redirect or pre-select an action. Both choices are neutral, respecting your autonomy after the intervention period.
+</Tip>
+
 ## Clearing the funeral
 
 The `clearFuneral()` function removes the state:
@@ -215,9 +259,10 @@ const clearFuneral = () => {
 };
 ```
 
-This is typically called:
-- After resurrection when the user dismisses the funeral
-- When starting a new funeral for a different product
+This is called when:
+- You click "I don't want it anymore" on the clarity screen
+- You complete a purchase via "Purchase with clarity"
+- You start a new funeral for a different product
 - During development/testing
 
 ## Next steps
