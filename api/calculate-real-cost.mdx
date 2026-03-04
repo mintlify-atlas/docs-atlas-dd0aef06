@@ -1,0 +1,195 @@
+---
+title: "Calculate real cost"
+description: "Convert product prices into real-world equivalents and show investment potential"
+---
+
+## Overview
+
+The `calculate_real_cost` tool converts a product price into meaningful real-world equivalents (ramen packs, coffees, hours of work, Netflix subscriptions) and calculates what the money could be worth if invested instead. This helps users understand the true impact of their spending decisions.
+
+**Tool name:** `calculate_real_cost`
+
+## When to use this tool
+
+Use this tool when:
+- Users want to understand what a price really means in practical terms
+- Users ask "what could I buy instead" or "put this in perspective"
+- Users mention "show me what I could do with this money"
+- You need to provide context for a purchase decision
+
+<Note>
+After calling this tool, always render a `spending-insight` component with the returned data. Never display raw tool output or JSON as text.
+</Note>
+
+## Input schema
+
+<ParamField path="price" type="number" required>
+  The price in USD to analyze.
+</ParamField>
+
+<ParamField path="productName" type="string" required>
+  Name of the product being analyzed.
+</ParamField>
+
+### Example input
+
+```json
+{
+  "price": 348,
+  "productName": "Sony WH-1000XM5 Headphones"
+}
+```
+
+## Output schema
+
+<ResponseField name="product" type="string">
+  The name of the product being analyzed.
+</ResponseField>
+
+<ResponseField name="price" type="number">
+  The price in USD.
+</ResponseField>
+
+<ResponseField name="equivalents" type="array">
+  Array of 4 real-world price equivalents showing what else you could buy.
+  
+  <Expandable title="Equivalent object structure">
+    <ResponseField name="item" type="string">
+      The name of the equivalent item (e.g., "Large Coffees", "Instant Ramen Packs").
+    </ResponseField>
+    
+    <ResponseField name="count" type="number">
+      How many of this item you could buy for the same price.
+    </ResponseField>
+    
+    <ResponseField name="emoji" type="string">
+      A relevant emoji for the item (e.g., "☕", "🍜").
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="monthlyIfRecurring" type="string">
+  Formatted string showing annual cost if this purchase was made monthly (e.g., "$4,176/year").
+</ResponseField>
+
+<ResponseField name="invested10yr" type="string">
+  Formatted string showing what this amount would be worth if invested at 7% annual return for 10 years (e.g., "~$685 if invested").
+</ResponseField>
+
+<ResponseField name="verdict" type="string">
+  A context-aware message based on the price tier:
+  - Over $500: "This is a significant purchase. Sleep on it."
+  - $100-$500: "Not trivial. Ask yourself: will you care about this in a month?"
+  - Under $100: "Small but they add up. Death by a thousand cuts."
+</ResponseField>
+
+## Implementation details
+
+The tool uses preset conversion rates:
+
+| Item | Cost per unit | Emoji |
+|------|--------------|-------|
+| Instant Ramen Packs | $0.50 | 🍜 |
+| Large Coffees | $5.50 | ☕ |
+| Hours of Min Wage Work | $7.25 | 👷 |
+| Netflix Months | $15.49 | 📺 |
+
+Investment calculation uses a 7% annual return rate compounded over 10 years:
+```
+invested10yr = price × (1.07)^10
+```
+
+## Example usage
+
+<Tabs>
+  <Tab title="Agent call">
+    The agent calls the tool when a user asks about a product's real cost:
+    
+    ```json
+    {
+      "tool": "calculate_real_cost",
+      "input": {
+        "price": 348,
+        "productName": "Sony WH-1000XM5 Headphones"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Tool output">
+    The tool returns comprehensive cost analysis data:
+    
+    ```json
+    {
+      "product": "Sony WH-1000XM5 Headphones",
+      "price": 348,
+      "equivalents": [
+        {
+          "item": "Instant Ramen Packs",
+          "count": 696,
+          "emoji": "🍜"
+        },
+        {
+          "item": "Large Coffees",
+          "count": 63,
+          "emoji": "☕"
+        },
+        {
+          "item": "Hours of Min Wage Work",
+          "count": 48,
+          "emoji": "👷"
+        },
+        {
+          "item": "Netflix Months",
+          "count": 22,
+          "emoji": "📺"
+        }
+      ],
+      "monthlyIfRecurring": "$4,176/year",
+      "invested10yr": "~$685 if invested",
+      "verdict": "Not trivial. Ask yourself: will you care about this in a month?"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Agent response">
+    The agent provides a brief intro and renders the spending-insight component:
+    
+    **Text:**
+    "Let me break down what $348 for Sony WH-1000XM5 Headphones really means in your life.
+    
+    Check the breakdown below 👇"
+    
+    **Component:** `spending-insight` with mapped data:
+    - `productName`: "Sony WH-1000XM5 Headphones"
+    - `price`: 348
+    - `insights`: mapped from `equivalents` array
+    - `savingsSuggestion`: mapped from `verdict`
+    - `monthlyImpact`: "$4,176/year"
+    - `yearlyImpact`: "~$685 if invested"
+  </Tab>
+</Tabs>
+
+## Complete conversation example
+
+**User:** How much do the Sony headphones really cost me?
+
+**Agent:** 
+1. Calls `calculate_real_cost` with price 348 and productName "Sony WH-1000XM5 Headphones"
+2. Receives the equivalents data
+3. Responds with: "Let me break down what $348 for Sony WH-1000XM5 Headphones really means in your life. Check the breakdown below 👇"
+4. Renders `spending-insight` component showing:
+   - 696 ramen packs 🍜
+   - 63 large coffees ☕
+   - 48 hours of minimum wage work 👷
+   - 22 Netflix months 📺
+   - Monthly impact: $4,176/year if recurring
+   - 10-year investment potential: ~$685
+   - Verdict message about the purchase
+
+## Source code reference
+
+The tool implementation can be found in:
+- Tool definition: `app/providers.tsx:259-288`
+- Conversion logic: `lib/currency-converter.ts:14-20`
+- Preset rates: `lib/currency-converter.ts:7-12`

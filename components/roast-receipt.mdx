@@ -1,0 +1,107 @@
+---
+title: Roast receipt
+description: Renders a detailed, sarcastic receipt breakdown of a purchase
+---
+
+The roast receipt component displays a mock receipt with humorous line items that break down the "true cost" of an impulse purchase. It mimics the design of a physical receipt with sarcastic commentary.
+
+## When to use
+
+Use this component when the user asks for:
+- A bill or receipt
+- A breakdown or analysis
+- "How much will X really cost me?"
+- Detailed cost information
+
+## Props
+
+<ParamField path="productName" type="string" default="Impulse Item">
+  The name of the main product being purchased.
+</ParamField>
+
+<ParamField path="total" type="string" default="$0.00">
+  The total formatted price (e.g., `"$500"`, `"$1,299.99"`). Include currency symbol.
+</ParamField>
+
+<ParamField path="roast" type="string" default="Why are you like this?">
+  A biting, sarcastic one-liner comment displayed at the bottom of the receipt. Make it memorable.
+</ParamField>
+
+<ParamField path="items" type="array" default={[]}>
+  List of 4-6 funny/sarcastic line items that add up to the total. Each item has:
+  
+  <ParamField path="items[].label" type="string" default="Mystery Fee">
+    A funny or sarcastic line item name (e.g., "Regret Tax", "Dopamine Surcharge", "Buyer's Remorse Fee").
+  </ParamField>
+  
+  <ParamField path="items[].cost" type="string" default="$0.00">
+    The formatted cost for this line item.
+  </ParamField>
+</ParamField>
+
+## Visual design
+
+The component features:
+- Light themed design (`#FAF8F4` background) mimicking paper
+- Golden gradient accent bar at top
+- "WalletWake Inc." header with timestamp
+- Monospace font for pricing
+- Dashed border separators
+- Barcode graphic with "No Refunds on Dignity" text
+- Dark "Accept Fate" button
+
+## Example usage
+
+```tsx
+<RoastReceipt
+  productName="Gaming Console"
+  total="$549.99"
+  roast="Your backlog of unplayed games just got longer."
+  items={[
+    { label: "Actual Product", cost: "$499.99" },
+    { label: "Extra Controller Tax", cost: "$69.99" },
+    { label: "Subscription You'll Forget", cost: "$9.99/mo" },
+    { label: "Regret Multiplier", cost: "-$30.00" },
+  ]}
+/>
+```
+
+## Behavior
+
+When the user clicks "Accept Fate":
+
+1. Button shows loading spinner
+2. Generates dramatic product image via `/api/generate-image`
+3. Stores product in impulse store
+4. Reloads page to show funeral mode
+
+## Integration with providers
+
+From `providers.tsx:45-88`, this component is registered as:
+
+```typescript
+{
+  name: "roast-receipt",
+  description: "Renders a detailed, sarcastic receipt breakdown. Use this when the user asks for a 'bill', 'receipt', 'breakdown', 'analysis', or 'how much will X really cost me'.",
+  component: RoastReceipt,
+  propsSchema: z.object({
+    productName: z.string().describe("Name of the main product").optional().default("Impulse Item"),
+    total: z.string().describe("Total formatted price (e.g. $500)").optional().default("$0.00"),
+    roast: z.string().describe("A biting, sarcastic one-liner comment").optional().default("Why are you like this?"),
+    items: z.array(
+      z.object({
+        label: z.string().describe("A funny/sarcastic line item name (e.g. 'Regret Tax', 'Dopamine Surcharge')").optional().default("Mystery Fee"),
+        cost: z.string().describe("The cost for this line item").optional().default("$0.00"),
+      })
+    ).describe("List of 4-6 funny/sarcastic line items that add up to the total").optional().default([]),
+  }),
+}
+```
+
+<Note>
+  Line items should be creative and humorous. Think of unexpected "fees" like "Dopamine Surcharge", "Instagram Envy Tax", or "Impulse Handling Fee".
+</Note>
+
+<Warning>
+  Make sure the line item costs are believable - they don't need to mathematically add up perfectly, but should feel plausible.
+</Warning>

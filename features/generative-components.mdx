@@ -1,0 +1,265 @@
+---
+title: Generative components
+description: Interactive UI components that the AI agent dynamically renders based on your conversation
+---
+
+Generative components are visual elements that WalletWake's AI agent renders during conversations. Instead of plain text responses, the agent uses these components to present financial insights, warnings, and alternatives in an engaging, scannable format.
+
+## How they work
+
+The agent decides which component to render based on your message intent and the available data. Each component is defined with:
+
+- A unique name
+- A description of when to use it
+- A React component for rendering
+- A Zod schema defining required props
+
+<Info>
+  Components are managed by the Tambo AI framework, which handles schema validation and rendering.
+</Info>
+
+## Available components
+
+### Funeral ticket
+
+**When it appears:** You mention wanting to buy a product
+
+**Example prompts:**
+- "I want to buy X"
+- "Should I get X?"
+- "Thinking about purchasing X"
+
+Displays a warning ticket with the product name, estimated price, and a witty reason why the purchase is a bad idea.
+
+```typescript
+propsSchema: z.object({
+  productTitle: z.string().default("Item"),
+  price: z.number().default(0),
+  currency: z.string().default("USD"),
+  reason: z.string().default("Bad idea.")
+})
+```
+
+### Roast receipt
+
+**When it appears:** You ask for a cost breakdown or analysis
+
+**Example prompts:**
+- "Give me a bill"
+- "Show me a receipt"
+- "How much will X really cost me?"
+- "Break down the cost"
+
+Renders a detailed, sarcastic receipt with funny line items that add up to the total.
+
+<Tabs>
+  <Tab title="Line items">
+    Each item includes a label and cost:
+
+    ```typescript
+    items: [
+      { label: "Regret Tax", cost: "$150" },
+      { label: "Dopamine Surcharge", cost: "$200" },
+      { label: "Buyer's Remorse Fee", cost: "$100" },
+      { label: "Flex on Instagram", cost: "$50" }
+    ]
+    ```
+  </Tab>
+  <Tab title="Roast message">
+    A biting one-liner appears at the bottom:
+
+    "Why are you like this?"
+  </Tab>
+</Tabs>
+
+### Spending insight
+
+**When it appears:** You ask for perspective on a price or the agent calls the `calculate_real_cost` tool
+
+**Example prompts:**
+- "What could I buy instead?"
+- "Put this in perspective"
+- "What does $500 mean?"
+- "Show me what I could do with this money"
+
+<Note>
+  The agent ALWAYS renders this component after calling `calculate_real_cost`. Never displays raw tool output.
+</Note>
+
+Shows a visual analysis card with:
+
+1. **Real-world equivalents** (4 items)
+   - Cups of coffee, ramen packs, Netflix months, work hours
+2. **Monthly impact** if spent recurring
+3. **Yearly impact** if invested for 10 years
+4. **Savings suggestion** with practical advice
+
+```typescript
+insights: [
+  { emoji: "☕", label: "Cups of Coffee", count: 67 },
+  { emoji: "🍜", label: "Ramen", count: 134 },
+  { emoji: "📺", label: "Netflix mo.", count: 4 },
+  { emoji: "💼", label: "Work hours", count: 8 }
+]
+```
+
+### Impulse score
+
+**When it appears:** You ask for a rating or evaluation
+
+**Example prompts:**
+- "How impulsive is this?"
+- "Rate this purchase"
+- "Is this a bad idea?"
+- "Score this"
+
+Displays a danger gauge from 1-10 with:
+
+<CardGroup cols={2}>
+  <Card title="Score" icon="gauge">
+    1 = genuine need
+    
+    10 = pure impulse regret
+  </Card>
+  <Card title="Verdict" icon="gavel">
+    A punchy headline like "Your wallet is crying"
+  </Card>
+  <Card title="Reasons" icon="list">
+    2-4 specific reasons supporting the score
+  </Card>
+  <Card title="Advice" icon="lightbulb">
+    One sentence of financial wisdom or a roast
+  </Card>
+</CardGroup>
+
+<Tip>
+  The agent is instructed to "be honest and harsh" when scoring purchases.
+</Tip>
+
+### Alternative suggestion
+
+**When it appears:** You ask about other options
+
+**Example prompts:**
+- "What else could I get?"
+- "Cheaper alternatives?"
+- "What should I buy instead?"
+- "Compare options"
+
+Renders a list of 2-4 alternatives, each with:
+
+- Product name
+- Price (formatted)
+- Reason why it's better
+
+```typescript
+alternatives: [
+  {
+    name: "Refurbished AirPods Pro",
+    price: "$179",
+    reason: "Same specs, half the hype tax"
+  },
+  {
+    name: "Sony WH-1000XM4",
+    price: "$279",
+    reason: "Better noise cancellation, less brand tax"
+  }
+]
+```
+
+## Component guidelines
+
+The agent follows these rules when rendering components:
+
+1. **Brief intro first** — Provide 1-2 sentences before showing the component
+2. **Never show raw data** — Always render components instead of JSON output
+3. **Context matters** — Explain why the component is relevant
+4. **Follow-up questions** — Keep the conversation engaging after rendering
+
+<Info>
+  From the system prompt: "When you call a tool, provide a brief human-readable summary, then render the component."
+</Info>
+
+## Tools that trigger components
+
+### calculate_real_cost tool
+
+Converts a product price into real-world equivalents and investment potential.
+
+**Input:**
+```typescript
+{
+  price: number,
+  productName: string
+}
+```
+
+**Output:**
+```typescript
+{
+  product: string,
+  price: number,
+  equivalents: Array<{ item, count, emoji }>,
+  monthlyIfRecurring: string,  // e.g., "$6,000/year"
+  invested10yr: string,         // e.g., "~$983 if invested"
+  verdict: string
+}
+```
+
+The agent maps this output directly to the `spending-insight` component:
+
+- `equivalents` → `insights`
+- `monthlyIfRecurring` → `monthlyImpact`
+- `invested10yr` → `yearlyImpact`
+- `verdict` → `savingsSuggestion`
+
+<Warning>
+  The tool calculates 10-year investment returns assuming 7% annual growth: `price * Math.pow(1.07, 10)`
+</Warning>
+
+### search_products tool
+
+Searches the product catalog by name or category. Returns matching products with prices.
+
+**Input:**
+```typescript
+{
+  query: string  // Product name, category, or "all"
+}
+```
+
+**Output:**
+```typescript
+Array<{
+  name: string,
+  price: string,
+  currency: string
+}>
+```
+
+This tool doesn't directly trigger a component but provides data for other components to use.
+
+## Response formatting
+
+The agent maintains a conversational tone when introducing components:
+
+- **Conversational:** Like texting a friend
+- **Brief:** 1-3 sentences max
+- **Scannable:** Uses line breaks
+- **Natural numbers:** `$999` not `999 USD`
+- **Emoji usage:** 1-2 max per message
+
+<Tip>
+  The system prompt explicitly states: "Never display raw JSON, tool output, or technical data as text. Always render components to visualize data."
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Chat interface" icon="message-circle" href="/features/chat-interface">
+    Learn how to interact with the agent
+  </Card>
+  <Card title="Funeral mode" icon="skull" href="/features/funeral-mode">
+    See how components integrate with the funeral experience
+  </Card>
+</CardGroup>

@@ -1,0 +1,123 @@
+---
+title: Chat interface
+description: Engage with WalletWake's AI-powered financial intervention agent through an interactive chat overlay
+---
+
+The chat interface serves as your direct line to WalletWake's financial intervention agent. When you mention a product you're considering, the agent responds with reality checks, cost breakdowns, and alternatives—all designed to help you make better spending decisions.
+
+## Opening the chat
+
+You can access the chat interface in two ways:
+
+<CardGroup cols={2}>
+  <Card title="Floating button" icon="message-circle">
+    Click the chat button in the bottom-right corner of any page (except the homepage)
+  </Card>
+  <Card title="Programmatic access" icon="code">
+    Call the `openChat()` function from anywhere in the app
+  </Card>
+</CardGroup>
+
+The chat button automatically hides on the homepage to avoid competing with the main call-to-action.
+
+## Starting a conversation
+
+When you first open the chat, you'll see the prompt:
+
+<Info>
+  **What do you want to buy?**
+  
+  I dare you.
+</Info>
+
+Type any product you're considering purchasing, such as:
+- "I want to buy AirPods Max"
+- "Should I get a PS5?"
+- "Thinking about a new MacBook"
+
+## How the agent responds
+
+The agent uses a conversational, sarcastic-but-helpful tone to discourage impulse purchases. Responses are brief and scannable, typically 1-3 sentences before rendering interactive components.
+
+### Response components
+
+Based on your message, the agent will render different visual components:
+
+<Tabs>
+  <Tab title="Funeral ticket">
+    Shows when you mention wanting to buy something. Displays a warning ticket with the product name, estimated price, and a witty reason why it's a bad idea.
+
+    **Example prompt:** "I want to buy a new smartwatch"
+  </Tab>
+  <Tab title="Roast receipt">
+    Appears when you ask for a breakdown or cost analysis. Shows a sarcastic receipt with funny line items like "Regret Tax" and "Dopamine Surcharge."
+
+    **Example prompt:** "How much will this really cost me?"
+  </Tab>
+  <Tab title="Spending insight">
+    Displays real-world price equivalents (cups of coffee, Netflix months) and investment potential.
+
+    **Example prompt:** "What could I buy instead?"
+  </Tab>
+  <Tab title="Impulse score">
+    Shows a danger gauge rating your purchase from 1-10 with specific reasons and advice.
+
+    **Example prompt:** "How impulsive is this?"
+  </Tab>
+</Tabs>
+
+## Message formatting
+
+The chat supports basic markdown formatting in agent responses:
+
+- **Bold text** using `**text**`
+- *Italic text* using `*text*`
+- Line breaks for readability
+
+<Note>
+  User messages appear in the accent color on the right, while agent messages appear in a neutral surface color on the left.
+</Note>
+
+## Chat behavior
+
+### Thinking indicator
+
+While the agent processes your message, you'll see an animated thinking indicator with three bouncing dots.
+
+### Message persistence
+
+Your conversation persists within the current session. Messages are managed by the Tambo thread system, which maintains context across the conversation.
+
+### Closing the chat
+
+Click the X button in the top-right corner to close the overlay. You can reopen it anytime to continue your conversation.
+
+## Technical implementation
+
+The chat interface is built using:
+
+- **Tambo AI** for thread management and AI responses
+- **React hooks** for state management (`useState`, `useEffect`)
+- **Global callback** system for programmatic access
+
+```typescript
+// Open chat from anywhere
+export function openChat() {
+  openChatCallback?.();
+}
+```
+
+<Tip>
+  The chat automatically hides on the homepage when no funeral is active, preventing UI clutter.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Funeral mode" icon="skull" href="/features/funeral-mode">
+    Learn about the 48-hour intervention that blocks impulse purchases
+  </Card>
+  <Card title="Generative components" icon="sparkles" href="/features/generative-components">
+    Explore the interactive components the agent renders
+  </Card>
+</CardGroup>

@@ -1,0 +1,196 @@
+---
+title: Alternative suggestion
+description: Renders a list of cheaper or better alternatives to a product
+---
+
+The alternative suggestion component displays a curated list of 2-4 better options than the user's original choice. Each alternative includes the product name, price, and a specific reason why it's a smarter purchase.
+
+## When to use
+
+Use this component when the user asks:
+- "What else could I get?"
+- "Cheaper alternatives?"
+- "What should I buy instead?"
+- "Compare options"
+- "Are there better choices?"
+
+## Props
+
+<ParamField path="originalProduct" type="string" default="Item">
+  The product they originally want. This is shown at the top for context.
+</ParamField>
+
+<ParamField path="originalPrice" type="string" default="$0">
+  The original price formatted (e.g., `"$500"`, `"$1,299"`). Include currency symbol.
+</ParamField>
+
+<ParamField path="alternatives" type="array" default={[]}>
+  Array of 2-4 alternative products. Each alternative has:
+  
+  <ParamField path="alternatives[].name" type="string" default="Alternative">
+    Alternative product name. Be specific - include brand, model, or key features.
+  </ParamField>
+  
+  <ParamField path="alternatives[].price" type="string" default="$0">
+    Price formatted with currency symbol (e.g., `"$200"`, `"$49.99"`). Should be lower than original price.
+  </ParamField>
+  
+  <ParamField path="alternatives[].reason" type="string" default="Worth considering.">
+    Why this is a better choice. Be specific about the value proposition:
+    
+    - "Same specs, half the hype tax"
+    - "Better battery life and $300 cheaper"
+    - "Identical features without the brand markup"
+    - "More practical for your actual needs"
+  </ParamField>
+</ParamField>
+
+<ParamField path="summary" type="string" default="There are better ways to spend your money.">
+  A brief summary of why alternatives matter here. Tie it to the user's situation or the product category.
+</ParamField>
+
+## Visual design
+
+The component features:
+- Dark themed card with green "Better Options" badge
+- Context line showing original product and price
+- Card-style alternative list items
+- Each alternative displays name, reason, and price in green (savings color)
+- Bottom summary with italic text and top border
+
+## Example usage
+
+```tsx
+<AlternativeSuggestion
+  originalProduct="iPhone 15 Pro Max"
+  originalPrice="$1,199"
+  alternatives={[
+    {
+      name: "iPhone 14 Pro",
+      price: "$899",
+      reason: "Same core features, last year's model, $300 savings",
+    },
+    {
+      name: "Google Pixel 8 Pro",
+      price: "$999",
+      reason: "Better camera for less money, amazing AI features",
+    },
+    {
+      name: "iPhone 13",
+      price: "$599",
+      reason: "Still fast, great camera, half the price",
+    },
+  ]}
+  summary="You'll barely notice the difference in daily use, but your wallet definitely will."
+/>
+```
+
+## Alternative strategies
+
+<Tabs>
+  <Tab title="Same product, older model">
+    Best for tech and electronics. Last year's flagship is usually 30-40% cheaper with minimal feature loss.
+    
+    ```tsx
+    {
+      name: "MacBook Pro M2",
+      price: "$1,699",
+      reason: "M3 chip is only 15% faster. Save $500 for identical daily performance."
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Different brand, same specs">
+    Great for fashion, accessories, or commodity products where brand doesn't affect function.
+    
+    ```tsx
+    {
+      name: "Anker Wireless Earbuds",
+      price: "$79",
+      reason: "Same active noise canceling, 40 hour battery, no Apple tax."
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Lower tier from same brand">
+    When the user wants the brand but doesn't need flagship features.
+    
+    ```tsx
+    {
+      name: "Nike Pegasus 40",
+      price: "$130",
+      reason: "Same comfort and quality, without the limited edition markup."
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Used or refurbished">
+    For expensive items with long lifespans.
+    
+    ```tsx
+    {
+      name: "Certified Refurbished iPad Pro",
+      price: "$649",
+      reason: "Apple certified, 1-year warranty, indistinguishable from new."
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Integration with providers
+
+From `providers.tsx:186-230`, this component is registered as:
+
+```typescript
+{
+  name: "alternative-suggestion",
+  description: "Renders a list of cheaper or better alternatives. Use when the user asks 'what else could I get', 'cheaper alternatives', 'what should I buy instead', or 'compare options'.",
+  component: AlternativeSuggestion,
+  propsSchema: z.object({
+    originalProduct: z.string().describe("The product they originally want").optional().default("Item"),
+    originalPrice: z.string().describe("The original price formatted (e.g. '$500')").optional().default("$0"),
+    alternatives: z.array(
+      z.object({
+        name: z.string().describe("Alternative product name").default("Alternative"),
+        price: z.string().describe("Price formatted (e.g. '$200')").default("$0"),
+        reason: z.string().describe("Why this is a better choice (e.g. 'Same specs, half the hype tax')").default("Worth considering."),
+      })
+    ).describe("2-4 alternative products with prices and reasons").optional().default([]),
+    summary: z.string().describe("A brief summary of why alternatives matter here").optional().default("There are better ways to spend your money."),
+  }),
+}
+```
+
+## Writing effective reasons
+
+Good reasons are:
+- **Specific**: "20MP camera vs 24MP" not "similar specs"
+- **Value-focused**: Highlight savings or better features
+- **Honest**: Don't oversell or undersell the alternative
+- **Relevant**: Tie to what the user likely cares about
+
+Examples:
+
+```tsx
+// Good
+reason: "Same processor and RAM, just last year's design. Save $400."
+
+// Bad
+reason: "It's cheaper"
+```
+
+```tsx
+// Good  
+reason: "Better warranty, longer battery life, and $200 less"
+
+// Bad
+reason: "Pretty good alternative option"
+```
+
+<Note>
+  Include 2-4 alternatives. Too few seems limited, too many overwhelms. Price alternatives from highest to lowest for easier comparison.
+</Note>
+
+<Warning>
+  All alternatives should be objectively better value propositions. Don't suggest inferior products just to have more options.
+</Warning>

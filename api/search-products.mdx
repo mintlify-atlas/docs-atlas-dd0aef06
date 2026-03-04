@@ -1,0 +1,273 @@
+---
+title: "Search products"
+description: "Search the product catalog for items by name or category with real prices"
+---
+
+## Overview
+
+The `search_products` tool searches the WalletWake product catalog for items matching a query. It returns product names, prices, and currencies. This allows the agent to look up actual product prices when users mention items they want to buy.
+
+**Tool name:** `search_products`
+
+## When to use this tool
+
+Use this tool when:
+- A user mentions a product and you need to look up its actual price
+- A user asks "how much is [product]?"
+- You need real price data before calling `calculate_real_cost`
+- A user wants to browse available products in a category
+
+## Input schema
+
+<ParamField path="query" type="string" required>
+  Search query for the product catalog. Can be a product name, category keyword, or the special value "all" to return all products.
+  
+  Examples:
+  - `"headphones"` - searches for headphones
+  - `"macbook"` - searches for MacBook products  
+  - `"gucci"` - searches for Gucci items
+  - `"all"` - returns entire catalog
+  - `""` (empty string) - also returns entire catalog
+</ParamField>
+
+### Example input
+
+```json
+{
+  "query": "headphones"
+}
+```
+
+## Output schema
+
+<ResponseField name="results" type="array">
+  Array of matching products.
+  
+  <Expandable title="Product object structure">
+    <ResponseField name="name" type="string">
+      The full product name/title.
+    </ResponseField>
+    
+    <ResponseField name="price" type="string">
+      The product price as a decimal string (e.g., "348.00").
+    </ResponseField>
+    
+    <ResponseField name="currency" type="string">
+      The currency code (e.g., "USD").
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Product catalog
+
+The mock database contains the following products:
+
+### Tech products
+- Sony WH-1000XM5 Wireless Noise Canceling Headphones - $348.00
+- Sony PlayStation 5 Console (Disc Edition) - $499.00
+- Apple MacBook Pro 14-inch M3 Max - $3,199.00
+- NVIDIA GeForce RTX 4090 Graphics Card - $1,599.00
+
+### Luxury items
+- Gucci Men's Web Slide Sandal - $450.00
+- Rolex Submariner Date 41mm - $14,500.00
+
+### Other products
+- Maruchan Instant Lunch (Pack of 24) - $12.50
+- Ninja Air Fryer, 4 Qt - $89.95
+- LEGO Star Wars Millennium Falcon - $849.99
+- Fender Player Stratocaster Electric Guitar - $799.00
+
+## Search behavior
+
+The search performs case-insensitive substring matching against product titles:
+
+- **Query:** `"sony"` → Returns Sony headphones and PlayStation 5
+- **Query:** `"guitar"` → Returns Fender Stratocaster
+- **Query:** `"all"` or `""` → Returns all 10 products
+- **Query:** `"nintendo"` → Returns empty array (no matches)
+
+## Example usage
+
+<Tabs>
+  <Tab title="Search by name">
+    **Agent call:**
+    ```json
+    {
+      "tool": "search_products",
+      "input": {
+        "query": "headphones"
+      }
+    }
+    ```
+    
+    **Tool output:**
+    ```json
+    [
+      {
+        "name": "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+        "price": "348.00",
+        "currency": "USD"
+      }
+    ]
+    ```
+  </Tab>
+  
+  <Tab title="Search by brand">
+    **Agent call:**
+    ```json
+    {
+      "tool": "search_products",
+      "input": {
+        "query": "sony"
+      }
+    }
+    ```
+    
+    **Tool output:**
+    ```json
+    [
+      {
+        "name": "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+        "price": "348.00",
+        "currency": "USD"
+      },
+      {
+        "name": "Sony PlayStation 5 Console (Disc Edition)",
+        "price": "499.00",
+        "currency": "USD"
+      }
+    ]
+    ```
+  </Tab>
+  
+  <Tab title="Get all products">
+    **Agent call:**
+    ```json
+    {
+      "tool": "search_products",
+      "input": {
+        "query": "all"
+      }
+    }
+    ```
+    
+    **Tool output:**
+    ```json
+    [
+      {
+        "name": "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+        "price": "348.00",
+        "currency": "USD"
+      },
+      {
+        "name": "Sony PlayStation 5 Console (Disc Edition)",
+        "price": "499.00",
+        "currency": "USD"
+      },
+      {
+        "name": "Apple MacBook Pro 14-inch M3 Max",
+        "price": "3199.00",
+        "currency": "USD"
+      },
+      {
+        "name": "NVIDIA GeForce RTX 4090 Graphics Card",
+        "price": "1599.00",
+        "currency": "USD"
+      },
+      {
+        "name": "Gucci Men's Web Slide Sandal",
+        "price": "450.00",
+        "currency": "USD"
+      },
+      {
+        "name": "Rolex Submariner Date 41mm",
+        "price": "14500.00",
+        "currency": "USD"
+      },
+      {
+        "name": "Maruchan Instant Lunch (Pack of 24)",
+        "price": "12.50",
+        "currency": "USD"
+      },
+      {
+        "name": "Ninja Air Fryer, 4 Qt",
+        "price": "89.95",
+        "currency": "USD"
+      },
+      {
+        "name": "LEGO Star Wars Millennium Falcon",
+        "price": "849.99",
+        "currency": "USD"
+      },
+      {
+        "name": "Fender Player Stratocaster Electric Guitar",
+        "price": "799.00",
+        "currency": "USD"
+      }
+    ]
+    ```
+  </Tab>
+  
+  <Tab title="No matches">
+    **Agent call:**
+    ```json
+    {
+      "tool": "search_products",
+      "input": {
+        "query": "iphone"
+      }
+    }
+    ```
+    
+    **Tool output:**
+    ```json
+    []
+    ```
+  </Tab>
+</Tabs>
+
+## Complete conversation example
+
+**User:** How much are the Sony headphones?
+
+**Agent workflow:**
+1. Calls `search_products` with query "sony headphones"
+2. Receives product results with price $348.00
+3. Responds: "The Sony WH-1000XM5 Wireless Noise Canceling Headphones are $348. Want me to show you what that really means?"
+4. If user says yes, calls `calculate_real_cost` with price 348
+5. Renders `spending-insight` component with the data
+
+## Chaining with other tools
+
+Common workflow pattern:
+
+```
+User mentions product
+    ↓
+[search_products] - Look up actual price
+    ↓
+[calculate_real_cost] - Convert to equivalents
+    ↓
+Render spending-insight component
+```
+
+**Example:**
+
+**User:** "I'm thinking about getting a PS5"
+
+1. **Search:** `search_products({query: "ps5"})`
+   - Returns: PlayStation 5 at $499.00
+
+2. **Calculate:** `calculate_real_cost({price: 499, productName: "PlayStation 5"})`
+   - Returns: equivalents, monthly impact, investment potential
+
+3. **Render:** Display `spending-insight` component with all the data
+
+## Source code reference
+
+The tool implementation can be found in:
+- Tool definition: `app/providers.tsx:299-318`
+- Search function: `app/providers.tsx:290-297`
+- Product database: `lib/mock-db.ts:1-90`
+- Search logic: `lib/mock-db.ts:80-90`

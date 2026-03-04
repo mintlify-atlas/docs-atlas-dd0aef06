@@ -1,0 +1,160 @@
+---
+title: Funeral mode
+description: A 48-hour intervention that forces you to grieve your impulsive purchase before buying
+---
+
+Funeral mode is WalletWake's core intervention mechanism. When triggered, it displays a somber, full-screen funeral view for the product you wanted to buy—complete with a countdown timer, reality checks, and alternatives. You can't escape it for 48 hours.
+
+## How it activates
+
+Funeral mode starts when you trigger an impulse purchase through the app. The system captures:
+
+- Product title
+- Product price and currency
+- Product image (displayed in grayscale)
+- Death timestamp (when the funeral started)
+
+<Info>
+  The funeral state persists in localStorage, so refreshing the page won't help you escape.
+</Info>
+
+## The funeral view
+
+### Visual design
+
+The entire interface transforms into a dark, somber memorial:
+
+- **Background:** Deep `#0D0C0A` (near-black)
+- **Text:** Muted `#EDE7DE` (warm off-white)
+- **Product image:** Desaturated and displayed at 70% opacity with a subtle vignette overlay
+
+<Note>
+  The design intentionally evokes funeral aesthetics to create an emotional pause before purchase.
+</Note>
+
+### Key sections
+
+<Tabs>
+  <Tab title="Header">
+    A small badge labeled "impulse funeral" with the subtitle "Processing grief for your wallet."
+  </Tab>
+  <Tab title="Product display">
+    Your desired item appears in a bordered card, grayscaled like a funeral portrait, measuring 176x176 pixels.
+  </Tab>
+  <Tab title="Price display">
+    Shows the product price in large text (48px) with the product title below in muted color.
+  </Tab>
+  <Tab title="Reality check grid">
+    A 2-column grid displaying real-world price conversions—what you could buy instead.
+
+    ```typescript
+    // Example conversions
+    [
+      { emoji: "☕", count: 67, item: "Coffees" },
+      { emoji: "🍜", count: 134, item: "Ramen" },
+      { emoji: "📺", count: 4, item: "Netflix mo." },
+      { emoji: "💼", count: 8, item: "Work hours" }
+    ]
+    ```
+  </Tab>
+  <Tab title="Countdown timer">
+    A large, monospaced timer showing hours, minutes, and seconds remaining until "resurrection."
+
+    ```typescript
+    const target = state.deathDate + 48 * 60 * 60 * 1000;
+    const diff = target - Date.now();
+    ```
+  </Tab>
+</Tabs>
+
+## The 48-hour lockout
+
+The countdown calculates resurrection time by adding 48 hours (in milliseconds) to the death timestamp:
+
+```typescript
+const resurrectionTime = state.deathDate + (48 * 60 * 60 * 1000);
+```
+
+The timer updates every second and displays in `HH:MM:SS` format. When it reaches zero, the funeral ends automatically.
+
+<Tip>
+  The app includes a developer fast-forward function that sets the death date to 49 hours ago, instantly ending the funeral for testing purposes.
+</Tip>
+
+## Alternative suggestions
+
+If cheaper alternatives are found for your product, they appear in a carousel below the countdown. This shows you better options without the regret.
+
+## The "buy anyway" button
+
+At the bottom of the funeral view, there's a shameful, de-emphasized button:
+
+<Warning>
+  **I have no self control. Buy anyway.**
+</Warning>
+
+Clicking it redirects you to eBay—a last-resort option that requires acknowledging your lack of self-control.
+
+## State persistence
+
+Funeral state is stored in localStorage under the key `walletwake_funeral`:
+
+```typescript
+interface FuneralState {
+  isActive: boolean;
+  productTitle: string;
+  productPrice: string;
+  currency: string;
+  imageUrl: string;
+  deathDate: number; // Timestamp when funeral started
+}
+```
+
+This ensures the intervention persists across:
+- Page refreshes
+- Browser restarts
+- Navigation within the app
+
+<Info>
+  The state loads automatically on mount using `useEffect` and remains active until the 48-hour timer expires or you manually clear it.
+</Info>
+
+## Checking resurrection status
+
+The `useImpulseStore` hook provides an `isResurrected()` function:
+
+```typescript
+const isResurrected = () => {
+  if (!state) return false;
+  const now = Date.now();
+  const resurrectionTime = state.deathDate + (48 * 60 * 60 * 1000);
+  return now > resurrectionTime;
+};
+```
+
+When this returns `true`, the funeral ends and you can use the app normally again.
+
+## Animations
+
+Each section of the funeral view animates in sequentially with staggered delays:
+
+- Header: `animate-fade-in` (no delay)
+- Product image: `animate-scale-in` (200ms delay)
+- Price: `animate-slide-up` (300ms delay)
+- Reality grid: `animate-slide-up` (400ms delay)
+- Countdown: `animate-slide-up` (500ms delay)
+- Alternatives: `animate-slide-up` (600ms delay)
+- Buy button: `animate-fade-in` (700ms delay)
+
+This creates a cinematic reveal that reinforces the funeral metaphor.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="48-hour intervention" icon="clock" href="/features/48-hour-intervention">
+    Understand the psychology and implementation of the lockout period
+  </Card>
+  <Card title="Chat interface" icon="message-circle" href="/features/chat-interface">
+    Return to the chat after your funeral ends
+  </Card>
+</CardGroup>

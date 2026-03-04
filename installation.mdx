@@ -1,0 +1,329 @@
+---
+title: Installation
+description: Set up WalletWake with all prerequisites, dependencies, and environment configuration
+---
+
+This guide walks you through installing WalletWake from scratch, including all prerequisites, package managers, and environment setup.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+### Node.js and npm
+
+WalletWake requires **Node.js 20 or higher** with npm.
+
+<Steps>
+  <Step title="Check your Node.js version">
+    ```bash
+    node --version
+    ```
+
+    You should see `v20.0.0` or higher.
+  </Step>
+
+  <Step title="Install or upgrade Node.js">
+    If you need to install or upgrade Node.js:
+
+    <CodeGroup>
+    ```bash macOS (Homebrew)
+    brew install node@20
+    ```
+
+    ```bash Linux (nvm)
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    nvm install 20
+    nvm use 20
+    ```
+
+    ```bash Windows (installer)
+    # Download from nodejs.org
+    # https://nodejs.org/en/download/
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Verify npm is installed">
+    ```bash
+    npm --version
+    ```
+
+    npm is bundled with Node.js, so this should display a version number.
+  </Step>
+</Steps>
+
+### Git
+
+You'll need Git to clone the repository:
+
+```bash
+git --version
+```
+
+If Git isn't installed, download it from [git-scm.com](https://git-scm.com).
+
+### API keys
+
+WalletWake requires three API keys. Create accounts and generate keys before proceeding:
+
+<Note>
+**Required services:**
+- **Tambo** — Powers the generative UI components ([tambo.ai](https://tambo.ai))
+- **Google AI Studio** — Gemini API for text and image generation ([ai.google.dev](https://ai.google.dev))
+- **ElevenLabs** — Text-to-speech for spoken eulogies ([elevenlabs.io](https://elevenlabs.io))
+</Note>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/yourusername/walletwake.git
+    cd walletwake
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Install all packages defined in `package.json`:
+
+    ```bash
+    npm install
+    ```
+
+    ### Core dependencies
+
+    WalletWake installs these production dependencies:
+
+    | Package | Version | Purpose |
+    |---------|---------|----------|
+    | `next` | 16.1.6 | React framework with App Router |
+    | `react` | 19.2.3 | UI library |
+    | `react-dom` | 19.2.3 | React renderer |
+    | `@tambo-ai/react` | ^0.73.1 | Generative UI components and tools |
+    | `@google/genai` | ^1.39.0 | Google Gemini API client |
+    | `gsap` | ^3.14.2 | Animation library for carousels |
+    | `zod` | ^4.3.6 | Schema validation for Tambo tools |
+    | `lucide-react` | ^0.563.0 | Icon library |
+    | `clsx` | ^2.1.1 | Conditional CSS classes |
+    | `tailwind-merge` | ^3.4.0 | Merge Tailwind classes |
+
+    ### Dev dependencies
+
+    | Package | Purpose |
+    |---------|----------|
+    | `typescript` | TypeScript compiler |
+    | `tailwindcss` | CSS framework |
+    | `@tailwindcss/postcss` | PostCSS integration |
+    | `eslint` | Linting |
+    | `@types/*` | TypeScript definitions |
+
+    <Tip>
+    If you prefer Yarn or pnpm:
+    ```bash
+    # Yarn
+    yarn install
+
+    # pnpm
+    pnpm install
+    ```
+    </Tip>
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env.local` file in the project root:
+
+    ```bash
+    touch .env.local
+    ```
+
+    Add your API keys:
+
+    ```env .env.local
+    NEXT_PUBLIC_TAMBO_API_KEY=your_tambo_key
+    GEMINI_API_KEY=your_google_ai_studio_key
+    ELEVENLABS_API_KEY=your_elevenlabs_key
+    ELEVENLABS_VOICE_ID=pNInz6obpgDQGcFmaJgB
+    ```
+
+    ### Environment variables explained
+
+    | Variable | Purpose | Required |
+    |----------|---------|----------|
+    | `NEXT_PUBLIC_TAMBO_API_KEY` | Tambo API key (public, sent to client) | Yes |
+    | `GEMINI_API_KEY` | Google Gemini API key (server-side only) | Yes |
+    | `ELEVENLABS_API_KEY` | ElevenLabs API key (server-side only) | Yes |
+    | `ELEVENLABS_VOICE_ID` | Voice ID for eulogies (default: Adam) | Yes |
+
+    <Warning>
+    **Security:**
+    - Only `NEXT_PUBLIC_*` variables are exposed to the browser
+    - Never commit `.env.local` to version control
+    - Never share API keys publicly
+    - Rotate keys immediately if exposed
+    </Warning>
+
+    ### Get your API keys
+
+    <Steps>
+      <Step title="Tambo API key">
+        1. Sign up at [tambo.ai](https://tambo.ai)
+        2. Navigate to your dashboard
+        3. Generate a new API key
+        4. Copy the key to `NEXT_PUBLIC_TAMBO_API_KEY`
+      </Step>
+
+      <Step title="Google Gemini API key">
+        1. Go to [Google AI Studio](https://ai.google.dev)
+        2. Sign in with your Google account
+        3. Click **Get API Key**
+        4. Create or select a project
+        5. Copy the key to `GEMINI_API_KEY`
+      </Step>
+
+      <Step title="ElevenLabs API key">
+        1. Sign up at [elevenlabs.io](https://elevenlabs.io)
+        2. Go to your profile settings
+        3. Copy your API key to `ELEVENLABS_API_KEY`
+        4. (Optional) Browse voices and update `ELEVENLABS_VOICE_ID`
+
+        <Note>
+        The default voice ID `pNInz6obpgDQGcFmaJgB` is "Adam". You can use any voice ID from your ElevenLabs account.
+        </Note>
+      </Step>
+    </Steps>
+  </Step>
+
+  <Step title="Verify installation">
+    Start the development server:
+
+    ```bash
+    npm run dev
+    ```
+
+    You should see:
+
+    ```plaintext
+    ▲ Next.js 16.1.6
+    - Local:        http://localhost:3000
+    - Network:      http://192.168.1.x:3000
+
+    ✓ Ready in 2.3s
+    ```
+
+    Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+    ### Check for errors
+
+    If you see a warning in the console:
+
+    ```plaintext
+    ⚠️ Tambo API Key missing.
+    ```
+
+    Verify your `.env.local` file exists and contains `NEXT_PUBLIC_TAMBO_API_KEY`.
+  </Step>
+</Steps>
+
+## Verify your setup
+
+Test that all components are working:
+
+<Steps>
+  <Step title="Test the chat interface">
+    1. Click **Start Chatting** on the homepage
+    2. Type: "I want to buy a PS5"
+    3. You should see a **Funeral Ticket** component appear
+
+    <Tip>
+    If the chat doesn't respond, check your browser console for API errors. Verify your Tambo API key is correct.
+    </Tip>
+  </Step>
+
+  <Step title="Test image generation">
+    1. In the chat, type: "Show me the funeral for a $500 purchase"
+    2. Click **Enter Funeral Mode**
+    3. You should see a gloomy AI-generated image
+
+    <Tip>
+    If the image fails to load, check your `GEMINI_API_KEY` in `.env.local`.
+    </Tip>
+  </Step>
+
+  <Step title="Test voice generation">
+    1. Enter funeral mode for any product
+    2. Enable sound on your device
+    3. You should hear a spoken eulogy
+
+    <Tip>
+    If audio doesn't play, verify your `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` are correct.
+    </Tip>
+  </Step>
+</Steps>
+
+## Build for production
+
+When you're ready to deploy:
+
+```bash
+npm run build
+```
+
+This creates an optimized production build in `.next/`.
+
+To test the production build locally:
+
+```bash
+npm run start
+```
+
+## Troubleshooting
+
+### "Module not found" errors
+
+```bash
+# Clear node_modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### "API key missing" warnings
+
+1. Verify `.env.local` exists in the project root (not in subdirectories)
+2. Check that variable names match exactly (including `NEXT_PUBLIC_` prefix)
+3. Restart the dev server after changing `.env.local`
+
+### TypeScript errors during build
+
+```bash
+# Regenerate TypeScript types
+npm run build
+```
+
+If errors persist, check for missing `@types/*` packages in `package.json`.
+
+### Port 3000 already in use
+
+```bash
+# Use a different port
+PORT=3001 npm run dev
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Make your first impulse buy intervention in 5 minutes
+  </Card>
+
+  <Card title="Architecture" icon="diagram-project" href="/architecture/overview">
+    Learn how Tambo components and tools work
+  </Card>
+
+  <Card title="Generative components" icon="sparkles" href="/features/generative-components">
+    Explore the 5 AI-powered intervention components
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/api/generate-image">
+    Explore the API endpoints and tools
+  </Card>
+</CardGroup>

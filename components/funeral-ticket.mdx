@@ -1,0 +1,86 @@
+---
+title: Funeral ticket
+description: Renders a warning ticket when the user mentions wanting to buy a product
+---
+
+The funeral ticket component displays a dramatic warning card that discourages impulse purchases. It appears when users express purchase intent and provides a call-to-action to enter "Funeral Mode" - an immersive experience that generates a cinematic image of the product.
+
+## When to use
+
+Use this component for general purchase intent like:
+- "I want to buy X"
+- "Should I get X?"
+- Any mention of wanting to purchase something
+
+## Props
+
+<ParamField path="productTitle" type="string" default="Item">
+  The name of the product the user wants to buy.
+</ParamField>
+
+<ParamField path="price" type="number" default={0}>
+  The estimated price in dollars.
+</ParamField>
+
+<ParamField path="currency" type="string" default="USD">
+  The currency code for the price.
+</ParamField>
+
+<ParamField path="reason" type="string" default="Bad idea.">
+  A short, witty reason why this purchase is a bad idea. Keep it punchy and sarcastic.
+</ParamField>
+
+## Visual design
+
+The component features:
+- Dark themed card with golden accents (`#D4A574`)
+- Alert triangle icon with "Financial hazard detected" badge
+- Product name and price prominently displayed
+- Italicized reason quote with left border
+- "Enter Funeral Mode" button that triggers image generation
+
+## Example usage
+
+```tsx
+<FuneralTicket
+  productTitle="iPhone 15 Pro Max"
+  price={1199}
+  currency="USD"
+  reason="You already have a perfectly good phone from last year."
+/>
+```
+
+## Behavior
+
+When the user clicks "Enter Funeral Mode":
+
+1. Loading state activates with spinner
+2. API call to `/api/generate-image` creates a dramatic product shot
+3. Product data stored in impulse store
+4. Page reloads to show funeral experience
+
+## Integration with providers
+
+From `providers.tsx:20-44`, this component is registered as:
+
+```typescript
+{
+  name: "funeral-ticket",
+  description: "Renders a warning ticket when the user mentions wanting to buy a product. Use this for general purchase intent like 'I want to buy X' or 'should I get X'.",
+  component: FuneralTicket,
+  propsSchema: z.object({
+    productTitle: z.string().describe("The name of the product").optional().default("Item"),
+    price: z.number().describe("The estimated price in dollars").optional().default(0),
+    currency: z.string().default("USD").optional(),
+    reason: z.string().describe("A short, witty reason why this purchase is a bad idea").default("Bad idea.").optional(),
+  }),
+}
+```
+
+<Note>
+  The component uses the `useImpulseStore` hook to manage funeral mode state across the application.
+</Note>
+
+<Warning>
+  Image generation requires a valid endpoint at `/api/generate-image`. If it fails, a placeholder image is used instead.
+</Warning>

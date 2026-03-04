@@ -1,0 +1,97 @@
+---
+title: "Instant eulogy"
+description: "Generate a judgmental roast about a purchase and convert it to audio"
+---
+
+## Endpoint
+
+```
+POST /api/instant-eulogy
+```
+
+Generates a short, judgmental roast about a product purchase using Gemini 3 Flash, then converts it to audio using ElevenLabs Text-to-Speech API with the Turbo v2.5 model for low-latency streaming.
+
+## Request body
+
+<ParamField path="productName" type="string" required>
+  The name of the product that was purchased
+</ParamField>
+
+<ParamField path="price" type="string" required>
+  The price paid for the product (without currency symbol)
+</ParamField>
+
+## Response
+
+Returns an audio stream in MP3 format (`audio/mpeg`).
+
+<ResponseField name="Content-Type" type="header">
+  `audio/mpeg`
+</ResponseField>
+
+<Note>
+  The generated roast is limited to 15 words maximum for speed. The AI uses a judgmental tone.
+</Note>
+
+## Example request
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://your-domain.com/api/instant-eulogy \
+      -H "Content-Type: application/json" \
+      -d '{
+        "productName": "Gucci Slides",
+        "price": "450"
+      }' \
+      --output eulogy.mp3
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch('/api/instant-eulogy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        productName: 'Gucci Slides',
+        price: '450'
+      })
+    });
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.play();
+    ```
+  </Tab>
+</Tabs>
+
+## Example response
+
+Binary audio stream (MP3 format).
+
+## Error handling
+
+On error, returns a JSON response:
+
+```json
+{
+  "error": "Failed"
+}
+```
+
+HTTP Status: `500`
+
+## Technical details
+
+- **Text generation model**: `gemini-3-flash-preview`
+- **TTS model**: `eleven_turbo_v2_5` (ElevenLabs)
+- **Voice settings**:
+  - Stability: `0.5`
+  - Similarity boost: `0.75`
+  - Style: `0.0`
+  - Speaker boost: `true`
+- **Prompt structure**: Judgmental roast, max 15 words
+- **Fallback text**: "You spent ${price} on ${productName}? Really?"

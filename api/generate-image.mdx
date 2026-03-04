@@ -1,0 +1,73 @@
+---
+title: "Generate image"
+description: "Generate images using Gemini 2.5 Flash Image model based on text prompts"
+---
+
+## Endpoint
+
+```
+POST /api/generate-image
+```
+
+Generates an image using Google's Gemini 2.5 Flash Image model ("Nano Banana") with native image generation capabilities. Returns a base64-encoded data URL for immediate display.
+
+## Request body
+
+<ParamField path="prompt" type="string" required>
+  Text prompt describing the image to generate
+</ParamField>
+
+## Response
+
+<ResponseField name="imageUrl" type="string">
+  Base64-encoded data URL in the format `data:{mimeType};base64,{base64Data}`. The MIME type is typically `image/png`.
+</ResponseField>
+
+<Note>
+  On error, the endpoint returns a placeholder image URL: `https://placehold.co/400x400/000000/FFF?text=Visual+Unavailable`
+</Note>
+
+## Example request
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://your-domain.com/api/generate-image \
+      -H "Content-Type: application/json" \
+      -d '{
+        "prompt": "A futuristic cityscape at sunset with flying cars"
+      }'
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch('/api/generate-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: 'A futuristic cityscape at sunset with flying cars'
+      })
+    });
+
+    const data = await response.json();
+    console.log(data.imageUrl);
+    ```
+  </Tab>
+</Tabs>
+
+## Example response
+
+```json
+{
+  "imageUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+}
+```
+
+## Technical details
+
+- **Model**: `gemini-2.5-flash-image`
+- **Response modality**: `IMAGE` (forced)
+- **Output format**: Base64-encoded data URL
+- **Error handling**: Returns placeholder image on failure

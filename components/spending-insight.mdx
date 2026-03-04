@@ -1,0 +1,145 @@
+---
+title: Spending insight
+description: Visual card showing what a price means in real-world terms
+---
+
+The spending insight component transforms abstract dollar amounts into relatable real-world equivalents. It shows users what they could buy instead (coffee, ramen, Netflix months) and projects the long-term financial impact.
+
+## When to use
+
+This component should **always** be used after calling the `calculate_real_cost` tool. Also use it when users ask:
+- "What could I buy instead?"
+- "Put this in perspective"
+- "What does X dollars mean?"
+- "Show me what I could do with this money"
+
+## Props
+
+<ParamField path="productName" type="string" default="Item">
+  The product being analyzed.
+</ParamField>
+
+<ParamField path="price" type="number" default={0}>
+  The price in dollars.
+</ParamField>
+
+<ParamField path="currency" type="string" default="USD">
+  The currency code.
+</ParamField>
+
+<ParamField path="insights" type="array" default={[]}>
+  Array of 4 real-world price equivalents. Each insight has:
+  
+  <ParamField path="insights[].emoji" type="string" default="💰">
+    A relevant emoji representing the item (e.g., ☕ for coffee, 🍜 for ramen).
+  </ParamField>
+  
+  <ParamField path="insights[].label" type="string" default="items">
+    What this converts to (e.g., "Cups of Coffee", "Spotify Months", "Burrito Bowls").
+  </ParamField>
+  
+  <ParamField path="insights[].count" type="number" default={0}>
+    How many of this item you could buy instead.
+  </ParamField>
+</ParamField>
+
+<ParamField path="savingsSuggestion" type="string" default="Consider saving this amount.">
+  A practical suggestion for what to do with the money instead. This should be helpful, not just sarcastic.
+</ParamField>
+
+<ParamField path="monthlyImpact" type="string" default="N/A">
+  What this costs if spent monthly (e.g., `"$6,000/year"`, `"$120/month"`). Format with currency and time period.
+</ParamField>
+
+<ParamField path="yearlyImpact" type="string" default="N/A">
+  Impact if this amount was invested yearly for 10 years (e.g., `"~$8,500 if invested"`). Shows opportunity cost.
+</ParamField>
+
+## Visual design
+
+The component features:
+- Dark themed card with golden header
+- 2x2 grid of real-world equivalents with emojis
+- Each equivalent shows emoji, count, and label
+- Monthly and yearly impact cards with orange highlights
+- Bottom suggestion in italics with border accent
+
+## Example usage
+
+```tsx
+<SpendingInsight
+  productName="AirPods Pro"
+  price={249}
+  currency="USD"
+  insights={[
+    { emoji: "☕", label: "Cups of Coffee", count: 50 },
+    { emoji: "🍜", label: "Ramen Packs", count: 166 },
+    { emoji: "🎵", label: "Spotify Months", count: 25 },
+    { emoji: "🍕", label: "Pizza Slices", count: 62 },
+  ]}
+  savingsSuggestion="Put this toward your emergency fund instead. Future you will thank present you."
+  monthlyImpact="$2,988/year"
+  yearlyImpact="~$3,450 if invested for 10 years"
+/>
+```
+
+## Mapping from calculate_real_cost tool
+
+When using the `calculate_real_cost` tool, map the response fields:
+
+```typescript
+// Tool returns:
+{
+  equivalents: [{ item, count, emoji }, ...],
+  monthlyIfRecurring: "$2,988/year",
+  invested10yr: "~$3,450 if invested",
+  verdict: "Not trivial. Ask yourself: will you care about this in a month?"
+}
+
+// Map to component props:
+<SpendingInsight
+  insights={equivalents.map(e => ({
+    emoji: e.emoji,
+    label: e.item,
+    count: e.count
+  }))}
+  monthlyImpact={monthlyIfRecurring}
+  yearlyImpact={invested10yr}
+  savingsSuggestion={verdict}
+/>
+```
+
+## Integration with providers
+
+From `providers.tsx:90-145`, this component is registered as:
+
+```typescript
+{
+  name: "spending-insight",
+  description: "Renders a visual spending analysis card showing what a price means in real-world terms. ALWAYS use this component when you have price data from calculate_real_cost tool or when the user asks 'what could I buy instead', 'put this in perspective', 'what does X dollars mean', or 'show me what I could do with this money'. Map the tool's equivalents array to the insights array, monthlyIfRecurring to monthlyImpact, invested10yr to yearlyImpact, and verdict to savingsSuggestion.",
+  component: SpendingInsight,
+  propsSchema: z.object({
+    productName: z.string().describe("The product being analyzed").optional().default("Item"),
+    price: z.number().describe("The price in dollars").optional().default(0),
+    currency: z.string().default("USD").optional(),
+    insights: z.array(
+      z.object({
+        emoji: z.string().describe("A relevant emoji").default("💰"),
+        label: z.string().describe("What this converts to (e.g. 'Cups of Coffee')").default("items"),
+        count: z.number().describe("How many of this item you could buy instead").default(0),
+      })
+    ).describe("4 real-world price equivalents").optional().default([]),
+    savingsSuggestion: z.string().describe("A practical suggestion for what to do with the money instead").optional().default("Consider saving this amount."),
+    monthlyImpact: z.string().describe("What this costs if spent monthly (e.g. '$6,000/year')").optional().default("N/A"),
+    yearlyImpact: z.string().describe("Impact if this was invested yearly for 10 years").optional().default("N/A"),
+  }),
+}
+```
+
+<Note>
+  The insights array typically contains 4 items for optimal grid layout. Common equivalents include coffee, ramen, streaming subscriptions, and food items.
+</Note>
+
+<Warning>
+  **Always** use this component after calling `calculate_real_cost` tool. Never display raw tool output - always render it through this component.
+</Warning>

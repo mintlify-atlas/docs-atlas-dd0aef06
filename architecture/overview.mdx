@@ -1,0 +1,249 @@
+---
+title: Architecture overview
+description: Comprehensive guide to WalletWake's technical architecture, tech stack, and key design decisions
+---
+
+## Tech stack
+
+WalletWake is built with modern web technologies focused on performance and developer experience:
+
+<Tabs>
+  <Tab title="Frontend">
+    - **Next.js 16.1.6** - React framework with App Router
+    - **React 19.2.3** - UI library with latest concurrent features
+    - **TypeScript 5** - Type-safe development
+    - **Tailwind CSS 4** - Utility-first styling
+    - **GSAP 3.14.2** - Animation library for funeral transitions
+  </Tab>
+  <Tab title="AI/Tooling">
+    - **@tambo-ai/react 0.73.1** - Generative UI framework
+    - **@google/genai 1.39.0** - Google AI SDK
+    - **Zod 4.3.6** - Schema validation for tool inputs/outputs
+  </Tab>
+  <Tab title="Development">
+    - **ESLint 9** - Code quality
+    - **Lucide React** - Icon library
+    - **clsx & tailwind-merge** - Conditional styling utilities
+  </Tab>
+</Tabs>
+
+## Architecture diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         Next.js App                         │
+│                      (app/page.tsx)                         │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            ├─ useImpulseStore (state)
+                            │  └─ localStorage persistence
+                            │
+                    ┌───────┴───────┐
+                    │               │
+            ┌───────▼──────┐  ┌────▼────────┐
+            │ FuneralView  │  │ ClarityView │
+            │  (0-48hrs)   │  │  (48hrs+)   │
+            └──────────────┘  └─────────────┘
+                    │
+            ┌───────▼───────┐
+            │  ChatOverlay  │
+            └───────┬───────┘
+                    │
+        ┌───────────▼──────────────┐
+        │    TamboProvider         │
+        │  (app/providers.tsx)     │
+        └───────┬──────────────────┘
+                │
+    ┌───────────┼───────────┐
+    │           │           │
+┌───▼────┐  ┌──▼───┐  ┌───▼──────┐
+│ Comps  │  │Tools │  │ Context  │
+│        │  │      │  │ Helpers  │
+├────────┤  ├──────┤  ├──────────┤
+│funeral │  │calc  │  │app_      │
+│ticket  │  │real  │  │context   │
+│        │  │cost  │  │          │
+│roast   │  │      │  │current_  │
+│receipt │  │search│  │time      │
+│        │  │prods │  │          │
+│spending│  └──────┘  └──────────┘
+│insight │
+│        │
+│impulse │
+│score   │
+│        │
+│altern. │
+│suggest │
+└────────┘
+```
+
+## Key design decisions
+
+### Client-side state management
+
+<Note>
+  WalletWake uses a custom React hook (`useImpulseStore`) instead of Zustand or Redux for simplicity and localStorage integration.
+</Note>
+
+The app maintains a single "funeral state" that tracks:
+- Active funeral status
+- Product details (title, price, currency, image)
+- Death timestamp for 48-hour countdown
+
+```tsx
+export interface FuneralState {
+  isActive: boolean;
+  productTitle: string;
+  productPrice: string;
+  currency: string;
+  imageUrl: string;
+  deathDate: number; // Timestamp when funeral started
+}
+```
+
+### View routing via state
+
+The app uses **state-driven routing** instead of URL-based routing:
+
+```tsx
+if (funeralState?.isActive) {
+  if (isResurrected) {
+    return <ClarityView state={funeralState} onClear={clearFuneral} />;
+  }
+  return <FuneralView state={funeralState} />;
+}
+
+return <main>{/* Landing page */}</main>;
+```
+
+<Info>
+  This approach keeps the URL clean and prevents users from bookmarking intermediate states. The funeral experience is ephemeral by design.
+</Info>
+
+### Generative UI with Tambo
+
+Instead of hardcoding AI responses, WalletWake uses **@tambo-ai/react** to dynamically render UI components based on conversation context:
+
+<Accordion title="Why generative UI?">
+  - **Contextual interfaces**: Components adapt to user intent ("show me a breakdown" → roast-receipt)
+  - **Type-safe props**: Zod schemas ensure AI generates valid component props
+  - **Tool integration**: calculate_real_cost tool automatically triggers spending-insight component
+  - **Personality preservation**: context helpers inject app voice and guidelines
+</Accordion>
+
+### Schema-first tool design
+
+Every Tambo tool has three schemas:
+
+1. **Input schema** - validates user request parameters
+2. **Output schema** - validates tool response structure
+3. **Props schema** - validates component props (for generative components)
+
+```tsx
+const calculateRealCostTool: TamboTool = {
+  name: "calculate_real_cost",
+  tool: calculateRealCost,
+  inputSchema: z.object({
+    price: z.number().describe("The price in USD"),
+    productName: z.string().describe("Name of the product"),
+  }),
+  outputSchema: z.object({
+    product: z.string(),
+    price: z.number(),
+    equivalents: z.array(z.object({
+      item: z.string(),
+      count: z.number(),
+      emoji: z.string(),
+    })),
+    monthlyIfRecurring: z.string(),
+    invested10yr: z.string(),
+    verdict: z.string(),
+  }),
+};
+```
+
+### Persistence strategy
+
+<Note>
+  localStorage is used for funeral state persistence instead of a database to keep the app lightweight and privacy-focused.
+</Note>
+
+The app:
+- Saves funeral state on creation: `localStorage.setItem("walletwake_funeral", JSON.stringify(newState))`
+- Loads on mount: `localStorage.getItem("walletwake_funeral")`
+- Clears on completion: `localStorage.removeItem("walletwake_funeral")`
+
+### Animation and timing
+
+The 48-hour funeral mechanic creates psychological friction:
+
+```tsx
+const isResurrected = () => {
+  if (!state) return false;
+  const now = Date.now();
+  const resurrectionTime = state.deathDate + (48 * 60 * 60 * 1000);
+  return now > resurrectionTime;
+};
+```
+
+<Info>
+  A "Skip 48h" debug button (`fastForward`) allows testing the resurrection flow by backdating the deathDate timestamp.
+</Info>
+
+## Component architecture
+
+WalletWake follows a **container/presentation** pattern:
+
+- **Container components**: `FuneralView`, `ClarityView`, `ChatOverlay` (manage state, handle user actions)
+- **Presentation components**: `FuneralTicket`, `RoastReceipt`, `SpendingInsight`, etc. (pure UI, receive props)
+
+All generative components are registered in the `components` array with:
+- Descriptive `name` for AI to reference
+- `description` that guides when to use the component
+- `component` reference to the React component
+- `propsSchema` for type-safe AI prop generation
+
+## Data flow
+
+```
+User Input → ChatOverlay → Tambo AI
+                              ↓
+                    Parse intent + context
+                              ↓
+                    ┌─────────┴──────────┐
+                    │                    │
+              Call Tool            Render Component
+                    │                    │
+            Return structured     Generate props
+                  data               from schema
+                    │                    │
+                    └─────────┬──────────┘
+                              ↓
+                    Display in ChatOverlay
+                              ↓
+                    User decision → Start Funeral
+                              ↓
+                    Update useImpulseStore
+                              ↓
+                    Persist to localStorage
+                              ↓
+                    Render FuneralView
+```
+
+## Performance considerations
+
+- **Client-side rendering**: All pages use `"use client"` for immediate interactivity
+- **No server state**: Eliminates hydration issues and reduces complexity
+- **Lazy loading**: Components render on-demand via Tambo
+- **Animation optimization**: GSAP handles complex funeral animations without jank
+
+## Security and privacy
+
+<Note>
+  No user data is sent to external servers except AI requests. All purchase history stays in browser localStorage.
+</Note>
+
+- API keys use `NEXT_PUBLIC_*` prefix (required for client-side Tambo calls)
+- No authentication or user accounts
+- No server-side data storage
+- Funeral state auto-clears after resurrection

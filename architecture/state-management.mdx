@@ -1,0 +1,555 @@
+---
+title: State management
+description: Deep dive into WalletWake's Zustand-free state management using custom hooks, funeral state lifecycle, and localStorage persistence
+---
+
+## Zustand store structure
+
+<Info>
+  Despite the file name `useImpulseStore`, WalletWake **does not use Zustand**. It's a custom React hook with useState and useEffect.
+</Info>
+
+The "store" is a lightweight hook that manages funeral state:
+
+```tsx
+import { useState, useEffect } from "react";
+
+export interface FuneralState {
+  isActive: boolean;
+  productTitle: string;
+  productPrice: string;
+  currency: string;
+  imageUrl: string;
+  deathDate: number; // Timestamp when funeral started
+}
+
+export function useImpulseStore() {
+  const [state, setState] = useState<FuneralState | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("walletwake_funeral");
+    if (saved) {
+      try {
+        setState(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse funeral state");
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // ... methods
+}
+```
+
+### Why not Zustand?
+
+<Accordion title="Design rationale">
+  WalletWake's state requirements are minimal:
+  - Single funeral state object
+  - No complex actions or reducers
+  - No global state sharing across distant components
+  - Direct localStorage integration
+
+  Zustand would add unnecessary complexity. A custom hook with `useState` is sufficient and more transparent for this use case.
+</Accordion>
+
+## Funeral state lifecycle
+
+The funeral state follows a strict 3-phase lifecycle:
+
+### Phase 1: Dormant (no funeral)
+
+```tsx
+funeralState === null
+```
+
+**UI**: Landing page with "Start Chatting" button
+
+**Actions available**:
+- Open ChatOverlay
+- Talk to WalletWake AI
+- Start a new funeral via `startFuneral()`
+
+### Phase 2: Active funeral (0-48 hours)
+
+```tsx
+funeralState.isActive === true && !isResurrected
+```
+
+**UI**: FuneralView with countdown, product coffin, and "Skip 48h" debug button
+
+**Behavior**:
+- User cannot buy the product
+- Countdown shows time remaining until resurrection
+- Product image displayed in coffin
+- No ChatOverlay access (intentional friction)
+
+```tsx
+if (funeralState?.isActive) {
+  if (isResurrected) {
+    return <ClarityView state={funeralState} onClear={clearFuneral} />;
+  }
+  return (
+    <>
+      <FuneralView state={funeralState} />
+      <button onClick={fastForward}>Skip 48h</button>
+    </>
+  );
+}
+```
+
+### Phase 3: Resurrected (48+ hours)
+
+```tsx
+funeralState.isActive === true && isResurrected === true
+```
+
+**UI**: ClarityView asking "Do you still want this?"
+
+**Actions available**:
+- Confirm purchase (exits funeral, clears state)
+- Cancel purchase (exits funeral, clears state)
+
+**Resurrection logic**:
+
+```tsx
+const isResurrected = () => {
+  if (!state) return false;
+  const now = Date.now();
+  const resurrectionTime = state.deathDate + (48 * 60 * 60 * 1000);
+  return now > resurrectionTime;
+};
+```
+
+<Note>
+  The function checks if 48 hours (172,800,000 milliseconds) have passed since `deathDate`.
+</Note>
+
+## State methods
+
+The `useImpulseStore` hook exports 5 methods:
+
+### startFuneral
+
+Creates a new funeral and persists it:
+
+```tsx
+const startFuneral = (product: any) => {
+  const newState: FuneralState = {
+    isActive: true,
+    productTitle: product.title,
+    productPrice: product.price.value,
+    currency: product.price.currency,
+    imageUrl: product.image.imageUrl,
+    deathDate: Date.now(),
+  };
+
+  setState(newState);
+  localStorage.setItem("walletwake_funeral", JSON.stringify(newState));
+};
+```
+
+**Usage in app**:
+
+```tsx
+const { startFuneral } = useImpulseStore();
+
+// Triggered from ChatOverlay when user confirms purchase intent
+startFuneral({
+  title: "Drone",
+  price: { value: "500", currency: "USD" },
+  image: { imageUrl: "/drone.jpg" },
+});
+```
+
+### clearFuneral
+
+Ends the funeral and removes persisted state:
+
+```tsx
+const clearFuneral = () => {
+  setState(null);
+  localStorage.removeItem("walletwake_funeral");
+};
+```
+
+**Called from**:
+- ClarityView "Yes, buy it" button
+- ClarityView "No, I've moved on" button
+
+### isResurrected
+
+Returns boolean indicating if 48 hours have passed:
+
+```tsx
+const isResurrected = () => {
+  if (!state) return false;
+  const now = Date.now();
+  const resurrectionTime = state.deathDate + (48 * 60 * 60 * 1000);
+  return now > resurrectionTime;
+};
+
+return {
+  // ...
+  isResurrected: isResurrected(), // Export the result, not the function
+};
+```
+
+<Info>
+  The hook exports the **boolean result**, not the function itself. This prevents unnecessary re-renders.
+</Info>
+
+### isLoaded
+
+Tracks whether localStorage has been read:
+
+```tsx
+const [isLoaded, setIsLoaded] = useState(false);
+
+useEffect(() => {
+  const saved = localStorage.getItem("walletwake_funeral");
+  if (saved) {
+    try {
+      setState(JSON.parse(saved));
+    } catch (e) {
+      console.error("Failed to parse funeral state");
+    }
+  }
+  setIsLoaded(true);
+}, []);
+```
+
+**Why needed?**
+
+<Accordion title="Hydration race condition">
+  On initial page load, `useState(null)` runs synchronously, but localStorage read is async (inside useEffect). Without `isLoaded`, the app would:
+
+  1. Render landing page (state is null)
+  2. Read localStorage (finds active funeral)
+  3. Update state
+  4. Re-render FuneralView
+
+  This causes a flash of landing page. By waiting for `isLoaded`, we prevent rendering until localStorage is checked:
+
+  ```tsx
+  if (!isLoaded) return null; // Show nothing until ready
+  ```
+</Accordion>
+
+### fastForward (debug tool)
+
+Backdates the funeral to test resurrection:
+
+```tsx
+fastForward: () => {
+  if (!state) return;
+  const oldState = {
+    ...state,
+    deathDate: Date.now() - (49 * 60 * 60 * 1000) // Set to 49 hours ago
+  };
+  setState(oldState);
+  localStorage.setItem("walletwake_funeral", JSON.stringify(oldState));
+  window.location.reload();
+}
+```
+
+**UI integration**:
+
+```tsx
+<button
+  onClick={fastForward}
+  className="fixed bottom-5 right-5 z-[100] bg-danger/10 border border-danger/20 text-danger text-[11px] font-mono px-3 py-1.5 rounded-full backdrop-blur-sm hover:bg-danger/20 transition-all cursor-pointer"
+>
+  Skip 48h
+</button>
+```
+
+<Note>
+  This button only appears during active funerals (FuneralView). It's intentionally styled as a debug tool (small, monospace font, corner placement).
+</Note>
+
+## Persistence strategy
+
+### localStorage schema
+
+```json
+{
+  "walletwake_funeral": {
+    "isActive": true,
+    "productTitle": "Wireless Headphones",
+    "productPrice": "199",
+    "currency": "USD",
+    "imageUrl": "/headphones.jpg",
+    "deathDate": 1709568000000
+  }
+}
+```
+
+### Read on mount
+
+```tsx
+useEffect(() => {
+  const saved = localStorage.getItem("walletwake_funeral");
+  if (saved) {
+    try {
+      setState(JSON.parse(saved));
+    } catch (e) {
+      console.error("Failed to parse funeral state");
+    }
+  }
+  setIsLoaded(true);
+}, []); // Empty deps = run once on mount
+```
+
+### Write on state change
+
+```tsx
+const startFuneral = (product: any) => {
+  const newState: FuneralState = { /* ... */ };
+  setState(newState);
+  localStorage.setItem("walletwake_funeral", JSON.stringify(newState)); // Immediate sync
+};
+```
+
+<Info>
+  WalletWake does **not** use `useEffect` to sync state → localStorage. Instead, it writes to localStorage **inside state-mutating functions** (startFuneral, fastForward). This ensures atomic updates and prevents race conditions.
+</Info>
+
+### Clear on funeral end
+
+```tsx
+const clearFuneral = () => {
+  setState(null);
+  localStorage.removeItem("walletwake_funeral");
+};
+```
+
+### Error handling
+
+```tsx
+try {
+  setState(JSON.parse(saved));
+} catch (e) {
+  console.error("Failed to parse funeral state");
+  // Silently fail - user sees landing page
+}
+```
+
+<Accordion title="Why not throw error?">
+  If localStorage is corrupted (e.g., user manually edited it), throwing an error would crash the app. Instead, WalletWake:
+  - Logs the error to console for debugging
+  - Leaves state as `null`
+  - User sees landing page and can start a fresh funeral
+
+  This graceful degradation is better UX than a white screen of death.
+</Accordion>
+
+## State-driven routing
+
+WalletWake uses state to determine which view to render:
+
+```tsx
+export default function Home() {
+  const {
+    funeralState,
+    clearFuneral,
+    isResurrected,
+    isLoaded,
+    fastForward,
+  } = useImpulseStore();
+
+  // Wait for localStorage read
+  if (!isLoaded) return null;
+
+  // Active funeral
+  if (funeralState?.isActive) {
+    // 48+ hours: show resurrection choice
+    if (isResurrected) {
+      return <ClarityView state={funeralState} onClear={clearFuneral} />;
+    }
+    // 0-48 hours: show funeral countdown
+    return (
+      <>
+        <FuneralView state={funeralState} />
+        <button onClick={fastForward}>Skip 48h</button>
+      </>
+    );
+  }
+
+  // No funeral: show landing page
+  return (
+    <main>
+      {/* Hero + ChatOverlay */}
+    </main>
+  );
+}
+```
+
+<Note>
+  This approach keeps the URL at `/` for all states. The funeral is ephemeral and shouldn't be bookmarked or shared.
+</Note>
+
+## State flow diagram
+
+```
+┌─────────────────┐
+│  Landing Page   │
+│ (state = null)  │
+└────────┬────────┘
+         │
+         │ User chats with AI
+         │ AI suggests funeral
+         │
+         ▼
+  startFuneral(product)
+         │
+         ├─ setState(newState)
+         ├─ localStorage.setItem(...)
+         │
+         ▼
+┌─────────────────┐
+│  FuneralView    │
+│ (0-48 hours)    │
+└────────┬────────┘
+         │
+         │ Wait 48 hours...
+         │ (or fastForward)
+         │
+         ▼
+   isResurrected = true
+         │
+         ▼
+┌─────────────────┐
+│  ClarityView    │
+│ (48+ hours)     │
+└────────┬────────┘
+         │
+         │ User clicks button
+         │
+         ▼
+   clearFuneral()
+         │
+         ├─ setState(null)
+         ├─ localStorage.removeItem(...)
+         │
+         ▼
+┌─────────────────┐
+│  Landing Page   │
+│ (state = null)  │
+└─────────────────┘
+```
+
+## Testing considerations
+
+### Manual testing
+
+1. **Start funeral**: Chat with AI, express purchase intent, confirm funeral
+2. **Test persistence**: Refresh page → should show FuneralView with countdown
+3. **Test resurrection**: Click "Skip 48h" → should show ClarityView
+4. **Test clear**: Click either button → should return to landing page
+5. **Test empty state**: Clear localStorage manually → should show landing page
+
+### localStorage debugging
+
+Inspect state in DevTools:
+
+```js
+// Read current state
+JSON.parse(localStorage.getItem("walletwake_funeral"))
+
+// Manually set resurrected state
+const state = JSON.parse(localStorage.getItem("walletwake_funeral"));
+state.deathDate = Date.now() - (49 * 60 * 60 * 1000);
+localStorage.setItem("walletwake_funeral", JSON.stringify(state));
+location.reload();
+
+// Clear state
+localStorage.removeItem("walletwake_funeral");
+location.reload();
+```
+
+## Performance characteristics
+
+<Tabs>
+  <Tab title="Reads">
+    - **1 read on mount**: `localStorage.getItem()` in useEffect
+    - **O(1) lookups**: `state` is a plain object, not a normalized store
+    - **No watchers**: No re-renders unless state changes
+  </Tab>
+  <Tab title="Writes">
+    - **Synchronous**: `localStorage.setItem()` blocks briefly (~1ms)
+    - **Infrequent**: Only on startFuneral, fastForward, clearFuneral
+    - **No debouncing needed**: Not writing on every keystroke
+  </Tab>
+  <Tab title="Memory">
+    - **Tiny footprint**: Single object, ~200 bytes
+    - **No cache bloat**: State clears when funeral ends
+    - **No memory leaks**: No global store or event listeners
+  </Tab>
+</Tabs>
+
+## Migration guide
+
+If you want to add Zustand later:
+
+```tsx
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface ImpulseStore {
+  funeralState: FuneralState | null;
+  startFuneral: (product: any) => void;
+  clearFuneral: () => void;
+  isResurrected: () => boolean;
+  fastForward: () => void;
+}
+
+export const useImpulseStore = create<ImpulseStore>()(persist(
+  (set, get) => ({
+    funeralState: null,
+    startFuneral: (product) => {
+      const newState = {
+        isActive: true,
+        productTitle: product.title,
+        productPrice: product.price.value,
+        currency: product.price.currency,
+        imageUrl: product.image.imageUrl,
+        deathDate: Date.now(),
+      };
+      set({ funeralState: newState });
+    },
+    clearFuneral: () => set({ funeralState: null }),
+    isResurrected: () => {
+      const state = get().funeralState;
+      if (!state) return false;
+      const now = Date.now();
+      const resurrectionTime = state.deathDate + (48 * 60 * 60 * 1000);
+      return now > resurrectionTime;
+    },
+    fastForward: () => {
+      const state = get().funeralState;
+      if (!state) return;
+      set({
+        funeralState: {
+          ...state,
+          deathDate: Date.now() - (49 * 60 * 60 * 1000),
+        },
+      });
+      window.location.reload();
+    },
+  }),
+  {
+    name: 'walletwake_funeral',
+  }
+));
+```
+
+<Info>
+  The current implementation is sufficient for WalletWake's needs. Only migrate to Zustand if you add features requiring:
+  - Multiple stores
+  - Complex derived state
+  - DevTools time-travel debugging
+</Info>

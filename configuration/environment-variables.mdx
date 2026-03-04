@@ -1,0 +1,127 @@
+---
+title: Environment variables
+description: Configure WalletWake with the required environment variables for Tambo, Gemini, and ElevenLabs integrations
+---
+
+## Overview
+
+WalletWake requires several environment variables to function properly. These variables enable integrations with Tambo's Generative UI, Google Gemini for AI-generated content and images, and ElevenLabs for text-to-speech eulogies.
+
+Create a `.env.local` file in your project root with the following variables:
+
+```env
+NEXT_PUBLIC_TAMBO_API_KEY=your_tambo_key
+GEMINI_API_KEY=your_google_ai_studio_key
+ELEVENLABS_API_KEY=your_elevenlabs_key
+ELEVENLABS_VOICE_ID=pNInz6obpgDQGcFmaJgB
+```
+
+## Required variables
+
+### Tambo API key
+
+<ParamField path="NEXT_PUBLIC_TAMBO_API_KEY" type="string" required>
+  Your Tambo API key for Generative UI functionality. This key is exposed to the client side (hence the `NEXT_PUBLIC_` prefix) and powers all chat-driven interactions, generative components, and local tools.
+  
+  **Used in:** `app/providers.tsx:357`
+  
+  **Where to get it:** Sign up at [tambo.ai](https://tambo.ai) and generate an API key from your dashboard
+</ParamField>
+
+<Warning>
+  If the Tambo API key is missing, the app will log a warning and fall back to a demo key, but functionality will be severely limited. Always set this variable in production.
+</Warning>
+
+### Google Gemini API key
+
+<ParamField path="GEMINI_API_KEY" type="string" required>
+  Your Google AI Studio API key for Gemini models. WalletWake uses Gemini for two critical features:
+  
+  - **Text generation:** Generates witty eulogy roasts (using `gemini-3-flash-preview`)
+  - **Image generation:** Creates gloomy product images for funeral mode (using `gemini-2.5-flash-image`)
+  
+  **Used in:**
+  - `app/api/instant-eulogy/route.ts:4`
+  - `app/api/generate-image/route.ts:4`
+  
+  **Where to get it:** Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to create a free API key
+</ParamField>
+
+<Info>
+  Gemini Flash models are optimized for speed. The eulogy endpoint uses `gemini-3-flash-preview` for near-instant roast generation, while funeral images use `gemini-2.5-flash-image` for native image synthesis.
+</Info>
+
+### ElevenLabs API key
+
+<ParamField path="ELEVENLABS_API_KEY" type="string" required>
+  Your ElevenLabs API key for text-to-speech synthesis. This powers the spoken eulogy feature in funeral mode, converting the AI-generated roast into audio with a judgmental tone.
+  
+  **Used in:** `app/api/instant-eulogy/route.ts:20`
+  
+  **Where to get it:** Sign up at [ElevenLabs](https://elevenlabs.io) and copy your API key from the profile section
+</ParamField>
+
+### ElevenLabs voice ID
+
+<ParamField path="ELEVENLABS_VOICE_ID" type="string" default="pNInz6obpgDQGcFmaJgB">
+  The voice ID to use for eulogy narration. Defaults to `pNInz6obpgDQGcFmaJgB` (Adam voice), which provides a serious, authoritative tone perfect for judgmental financial roasts.
+  
+  **Used in:** `app/api/instant-eulogy/route.ts:21`
+  
+  **Where to find voice IDs:** Browse the [ElevenLabs Voice Library](https://elevenlabs.io/voice-library) and copy the voice ID from any voice you want to use
+</ParamField>
+
+<Accordion title="Voice settings and model configuration">
+  WalletWake uses the `eleven_turbo_v2_5` model for low-latency speech synthesis with these optimized settings:
+  
+  ```json
+  {
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "style": 0.0,
+    "use_speaker_boost": true
+  }
+  ```
+  
+  These settings are tuned for the Turbo model to prevent glitchiness while maintaining voice quality. If you use a different voice ID, you may want to adjust these parameters in `app/api/instant-eulogy/route.ts:34-38`.
+</Accordion>
+
+## Security considerations
+
+<Warning>
+  Never commit your `.env.local` file to version control. The file is already included in `.gitignore` by default in Next.js projects.
+</Warning>
+
+**Client-side exposure:**
+- `NEXT_PUBLIC_TAMBO_API_KEY` is intentionally exposed to the browser and sent with client requests
+- `GEMINI_API_KEY` and `ELEVENLABS_API_KEY` remain server-side only (used in API routes)
+
+**Best practices:**
+- Rotate API keys regularly
+- Use separate keys for development and production environments
+- Set up usage limits and monitoring in each service's dashboard to prevent unexpected charges
+- Consider using Vercel environment variables for deployment
+
+## Validation
+
+To verify your environment variables are set correctly:
+
+```bash
+npm run dev
+```
+
+Check the console output:
+- If you see `⚠️ Tambo API Key missing.`, check your `NEXT_PUBLIC_TAMBO_API_KEY`
+- Test the eulogy feature by entering funeral mode - audio should play
+- Test image generation by creating a funeral ticket - a custom gloomy image should appear
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="API keys guide" icon="key" href="/configuration/api-keys">
+    Detailed instructions for obtaining each API key
+  </Card>
+  <Card title="Installation" icon="rocket" href="/installation">
+    Complete installation guide with environment setup
+  </Card>
+</CardGroup>

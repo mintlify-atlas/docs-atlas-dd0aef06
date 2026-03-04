@@ -1,0 +1,113 @@
+---
+title: "eBay search"
+description: "Search mock product database for testing and development"
+---
+
+## Endpoint
+
+```
+GET /api/ebay/search
+```
+
+Searches a mock product database containing tech items, luxury goods, and impulse purchases. This endpoint provides fast, reliable results without requiring external API keys.
+
+## Query parameters
+
+<ParamField query="q" type="string" default="">
+  Search query to filter products by title. Use `all` or empty string to return all products.
+</ParamField>
+
+## Response
+
+<ResponseField name="itemSummaries" type="array">
+  Array of product items matching the search query
+
+  <ResponseField name="itemId" type="string">
+    Unique identifier for the product
+  </ResponseField>
+
+  <ResponseField name="title" type="string">
+    Product title/name
+  </ResponseField>
+
+  <ResponseField name="price" type="object">
+    Price information
+    
+    <ResponseField name="value" type="string">
+      Price amount as a string (e.g., "348.00")
+    </ResponseField>
+    
+    <ResponseField name="currency" type="string">
+      Currency code (e.g., "USD")
+    </ResponseField>
+  </ResponseField>
+
+  <ResponseField name="image" type="object">
+    Product image information
+    
+    <ResponseField name="imageUrl" type="string">
+      URL to the product image
+    </ResponseField>
+  </ResponseField>
+
+  <ResponseField name="itemWebUrl" type="string">
+    URL to the product page (currently returns "#" for mock data)
+  </ResponseField>
+</ResponseField>
+
+## Example request
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "https://your-domain.com/api/ebay/search?q=headphones"
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch('/api/ebay/search?q=headphones');
+    const data = await response.json();
+    console.log(data.itemSummaries);
+    ```
+  </Tab>
+</Tabs>
+
+## Example response
+
+```json
+{
+  "itemSummaries": [
+    {
+      "itemId": "v1|1234567890|0",
+      "title": "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+      "price": {
+        "value": "348.00",
+        "currency": "USD"
+      },
+      "image": {
+        "imageUrl": "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&w=500&q=80"
+      },
+      "itemWebUrl": "#"
+    }
+  ]
+}
+```
+
+## Available mock products
+
+The mock database includes:
+
+- **Tech**: Sony headphones, PlayStation 5, MacBook Pro, RTX 4090
+- **Luxury**: Gucci slides, Rolex Submariner
+- **Impulse/Other**: Ramen packs, air fryer, LEGO Millennium Falcon, Fender Stratocaster
+
+<Note>
+  This is a mock endpoint for development purposes. It returns consistent, predictable results without requiring external API credentials.
+</Note>
+
+## Search behavior
+
+- Search is case-insensitive
+- Filters products by title match
+- Returns all products when query is empty or "all"
+- Returns empty array when no matches are found

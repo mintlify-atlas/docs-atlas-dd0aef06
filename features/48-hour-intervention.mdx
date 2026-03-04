@@ -1,0 +1,232 @@
+---
+title: 48-hour intervention
+description: The psychology and implementation behind WalletWake's forced cooling-off period
+---
+
+The 48-hour intervention is WalletWake's most powerful feature. When you trigger a funeral for an impulse purchase, you can't access normal app functionality for exactly 48 hours. This forced pause leverages behavioral psychology to break the impulse-to-purchase loop.
+
+## Why 48 hours?
+
+Research shows that the emotional intensity of impulse desire decreases significantly after 24-48 hours. By enforcing this waiting period, WalletWake gives you time to:
+
+- Process the initial dopamine rush
+- Evaluate whether you actually need the item
+- Consider opportunity costs
+- Explore alternatives
+- Make a rational decision instead of an emotional one
+
+<Info>
+  The "sleep on it" principle, extended to two full days.
+</Info>
+
+## How the timer works
+
+### Timestamp-based calculation
+
+When a funeral starts, the system records the exact timestamp:
+
+```typescript
+const newState: FuneralState = {
+  isActive: true,
+  productTitle: product.title,
+  productPrice: product.price.value,
+  currency: product.price.currency,
+  imageUrl: product.image.imageUrl,
+  deathDate: Date.now()  // Current timestamp in milliseconds
+};
+```
+
+### Resurrection calculation
+
+The resurrection time is calculated by adding 48 hours in milliseconds:
+
+```typescript
+const resurrectionTime = state.deathDate + (48 * 60 * 60 * 1000);
+// 48 hours × 60 minutes × 60 seconds × 1000 milliseconds
+```
+
+### Countdown display
+
+The timer updates every second, showing the remaining time:
+
+```typescript
+const timer = setInterval(() => {
+  const target = state.deathDate + 48 * 60 * 60 * 1000;
+  const diff = target - Date.now();
+
+  if (diff <= 0) {
+    setTimeLeft("00:00:00");
+    clearInterval(timer);
+    return;
+  }
+
+  const h = Math.floor(diff / (1000 * 60 * 60));
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+  setTimeLeft(
+    `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
+  );
+}, 1000);
+```
+
+<Note>
+  The countdown displays in monospaced font with tabular numbers for consistent width and readability.
+</Note>
+
+## State persistence
+
+The intervention survives across sessions by storing state in localStorage:
+
+### Saving state
+
+```typescript
+localStorage.setItem("walletwake_funeral", JSON.stringify(newState));
+```
+
+### Loading state
+
+```typescript
+useEffect(() => {
+  const saved = localStorage.getItem("walletwake_funeral");
+  if (saved) {
+    try {
+      setState(JSON.parse(saved));
+    } catch (e) {
+      console.error("Failed to parse funeral state");
+    }
+  }
+  setIsLoaded(true);
+}, []);
+```
+
+This ensures:
+
+<CardGroup cols={2}>
+  <Card title="Persistence" icon="save">
+    State survives page refreshes and browser restarts
+  </Card>
+  <Card title="Integrity" icon="shield">
+    You can't escape the intervention by clearing cookies
+  </Card>
+  <Card title="Cross-session" icon="arrows-rotate">
+    Timer continues counting down even when the app is closed
+  </Card>
+  <Card title="Automatic load" icon="bolt">
+    State restores immediately on mount
+  </Card>
+</CardGroup>
+
+## Resurrection check
+
+The `useImpulseStore` hook exports a boolean that indicates whether the 48 hours have passed:
+
+```typescript
+const isResurrected = () => {
+  if (!state) return false;
+  const now = Date.now();
+  const resurrectionTime = state.deathDate + (48 * 60 * 60 * 1000);
+  return now > resurrectionTime;
+};
+
+return {
+  funeralState: state,
+  startFuneral,
+  clearFuneral,
+  isResurrected: isResurrected(),  // Exported as boolean
+  isLoaded
+};
+```
+
+When `isResurrected` becomes `true`:
+- The funeral view is hidden
+- Normal app functionality returns
+- The state can be cleared
+
+<Tip>
+  The app doesn't automatically clear the state after resurrection—it waits for user action to preserve the data for potential future reference.
+</Tip>
+
+## Developer fast-forward
+
+For testing purposes, the hook includes a `fastForward()` function:
+
+```typescript
+fastForward: () => {
+  if (!state) return;
+  const oldState = {
+    ...state,
+    deathDate: Date.now() - (49 * 60 * 60 * 1000)  // Set to 49 hours ago
+  };
+  setState(oldState);
+  localStorage.setItem("walletwake_funeral", JSON.stringify(oldState));
+  window.location.reload();
+}
+```
+
+This sets the death date to 49 hours in the past, instantly ending the funeral and triggering resurrection.
+
+<Warning>
+  This function is only for development and demo purposes. It reloads the entire page after updating the state.
+</Warning>
+
+## Behavioral psychology principles
+
+The 48-hour intervention leverages several psychological concepts:
+
+### Temporal discounting
+
+People value immediate rewards more than future ones. By forcing a delay, the intervention reduces the perceived value of the impulse purchase.
+
+### Cognitive reappraisal
+
+The funeral view reframes the purchase as a "death" rather than an acquisition, triggering emotional processing that leads to rational reconsideration.
+
+### Choice architecture
+
+The intervention makes the impulsive choice (buying) harder and the rational choice (waiting) the default path.
+
+### Precommitment
+
+By triggering the funeral, you're precommitting to a 48-hour wait, removing the burden of willpower from moment-to-moment decisions.
+
+<Info>
+  These principles are foundational to behavioral economics and have been validated in numerous studies on self-control and decision-making.
+</Info>
+
+## What happens during the 48 hours
+
+While the funeral is active:
+
+1. **Full-screen takeover** — The funeral view replaces normal navigation
+2. **Reality checks** — Price conversions show what you could buy instead
+3. **Alternatives** — Cheaper options are displayed if available
+4. **Countdown pressure** — The ticking timer creates awareness of time passing
+5. **Shameful escape** — The "buy anyway" button requires acknowledging lack of self-control
+
+## Clearing the funeral
+
+The `clearFuneral()` function removes the state:
+
+```typescript
+const clearFuneral = () => {
+  setState(null);
+  localStorage.removeItem("walletwake_funeral");
+};
+```
+
+This is typically called:
+- After resurrection when the user dismisses the funeral
+- When starting a new funeral for a different product
+- During development/testing
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Funeral mode" icon="skull" href="/features/funeral-mode">
+    Explore the visual design and UX of the funeral view
+  </Card>
+  <Card title="Chat interface" icon="message-circle" href="/features/chat-interface">
+    Return to chatting after the intervention ends
+  </Card>
+</CardGroup>

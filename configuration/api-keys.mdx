@@ -1,0 +1,259 @@
+---
+title: API keys
+description: Step-by-step guide to obtaining all required API keys for WalletWake
+---
+
+## Overview
+
+WalletWake integrates with three external services that require API keys. This guide walks you through obtaining each key and configuring them properly.
+
+<Info>
+  All three services offer free tiers that are sufficient for development and testing. Production usage may require paid plans depending on your traffic.
+</Info>
+
+## Tambo API key
+
+Tambo powers WalletWake's Generative UI, enabling chat-driven interactions with dynamic component rendering.
+
+### Getting your Tambo key
+
+1. Visit [tambo.ai](https://tambo.ai) and create an account
+2. Navigate to your dashboard after signing in
+3. Go to the API Keys section
+4. Click **Create New API Key**
+5. Copy the generated key
+6. Add it to your `.env.local` file:
+   ```env
+   NEXT_PUBLIC_TAMBO_API_KEY=your_tambo_key_here
+   ```
+
+<Warning>
+  The Tambo API key is prefixed with `NEXT_PUBLIC_` because it needs to be accessible on the client side. This means it will be visible in your browser's network requests. Tambo keys are designed with this in mind and include built-in rate limiting and domain restrictions.
+</Warning>
+
+### What Tambo powers in WalletWake
+
+- **5 Generative Components:**
+  - `funeral-ticket` - Warning ticket for purchase intent
+  - `roast-receipt` - Sarcastic receipt breakdown
+  - `spending-insight` - Real-world price perspective
+  - `impulse-score` - Visual danger gauge (1-10)
+  - `alternative-suggestion` - Better options list
+
+- **2 Local Tools:**
+  - `calculate_real_cost` - Converts prices to ramen/coffee/work equivalents
+  - `search_products` - Searches product catalog
+
+- **Context Helpers:** Define the agent's personality, response style, and component selection logic
+
+See `app/providers.tsx:20-231` for the complete component and tool definitions.
+
+## Google Gemini API key
+
+Gemini provides both text generation for roasts and image generation for funeral visuals.
+
+### Getting your Gemini key
+
+1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Sign in with your Google account
+3. Click **Get API Key**
+4. If you don't have a project, create one
+5. Click **Create API Key** and select your project
+6. Copy the generated API key
+7. Add it to your `.env.local` file:
+   ```env
+   GEMINI_API_KEY=your_google_ai_studio_key_here
+   ```
+
+<Info>
+  Gemini API keys are free for moderate usage. Check the [Gemini pricing page](https://ai.google.dev/pricing) for current rate limits and pricing tiers.
+</Info>
+
+### Models used
+
+<ParamField path="gemini-3-flash-preview" type="text generation">
+  Used for generating witty eulogy roasts (max 15 words) with a judgmental tone. Optimized for speed to keep the eulogy generation snappy.
+  
+  **Used in:** `app/api/instant-eulogy/route.ts:15`
+</ParamField>
+
+<ParamField path="gemini-2.5-flash-image" type="image generation">
+  Used for generating custom gloomy funeral images based on the product. Returns images as base64 data URLs for immediate display.
+  
+  **Used in:** `app/api/generate-image/route.ts:13`
+  
+  **Configuration:** Forces image output with `responseModalities: ["IMAGE"]`
+</ParamField>
+
+<Accordion title="Why Flash models?">
+  WalletWake uses Gemini's Flash models (instead of Pro) because:
+  
+  - **Speed:** Flash models respond in milliseconds, critical for real-time chat interactions
+  - **Cost:** Flash models are significantly cheaper for high-volume generation
+  - **Quality:** Flash provides more than enough quality for short roasts and stylized funeral images
+  
+  If you need higher quality outputs, you can modify the model names in the API route files to use Pro models instead.
+</Accordion>
+
+### Testing Gemini integration
+
+After adding your key:
+
+1. Start the development server: `npm run dev`
+2. Chat with the assistant and mention a product
+3. Click **Enter Funeral Mode** on any ticket
+4. Verify:
+   - A custom gloomy image appears (not a placeholder)
+   - The eulogy audio plays with a spoken roast
+
+If you see `https://placehold.co/400x400/000000/FFF?text=Visual+Unavailable`, check that your Gemini API key is correct.
+
+## ElevenLabs API key and voice ID
+
+ElevenLabs converts the AI-generated roast text into spoken audio with realistic voice synthesis.
+
+### Getting your ElevenLabs key
+
+1. Visit [ElevenLabs](https://elevenlabs.io) and sign up
+2. Navigate to your profile settings
+3. Find the **API Keys** section
+4. Copy your default API key (or create a new one)
+5. Add it to your `.env.local` file:
+   ```env
+   ELEVENLABS_API_KEY=your_elevenlabs_key_here
+   ```
+
+<Info>
+  ElevenLabs offers 10,000 free characters per month on the free tier, which is approximately 1,000 eulogies. Perfect for development and small-scale deployment.
+</Info>
+
+### Choosing a voice ID
+
+WalletWake defaults to the **Adam** voice (`pNInz6obpgDQGcFmaJgB`), which has a serious, authoritative tone ideal for judgmental roasts.
+
+**To use a different voice:**
+
+1. Browse the [ElevenLabs Voice Library](https://elevenlabs.io/voice-library)
+2. Preview voices and find one that matches your desired tone
+3. Click on the voice to open its detail page
+4. Copy the **Voice ID** (appears below the voice name)
+5. Add it to your `.env.local` file:
+   ```env
+   ELEVENLABS_VOICE_ID=your_voice_id_here
+   ```
+
+<Accordion title="Recommended voices for WalletWake">
+  - **Adam** (default) - Deep, serious, authoritative
+  - **Antoni** - Soft but firm, slightly judgmental
+  - **Arnold** - Stern, no-nonsense, perfect for harsh truths
+  - **Josh** - Professional, clear, good for straightforward roasts
+  
+  Avoid overly cheerful or energetic voices - they undermine the funeral mood.
+</Accordion>
+
+### Voice model configuration
+
+WalletWake uses the **Turbo v2.5** model for low-latency streaming:
+
+```json
+{
+  "model_id": "eleven_turbo_v2_5",
+  "voice_settings": {
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "style": 0.0,
+    "use_speaker_boost": true
+  }
+}
+```
+
+These settings are optimized for the Turbo model to prevent glitchiness. If you switch to a different model (like `eleven_multilingual_v2`), you may need to adjust these parameters.
+
+See `app/api/instant-eulogy/route.ts:30-39` for the full configuration.
+
+### Testing ElevenLabs integration
+
+After adding your key:
+
+1. Start the development server
+2. Create a funeral ticket and enter funeral mode
+3. Ensure your device volume is on
+4. Verify that audio plays automatically with a spoken roast
+
+If audio doesn't play, check:
+- Your API key is correct and has remaining quota
+- Your browser allows autoplay (some browsers block it)
+- The voice ID exists and is spelled correctly
+
+## Troubleshooting
+
+### Common issues
+
+<AccordionGroup>
+  <Accordion title="Tambo API key invalid">
+    **Symptoms:** Warning message appears, generative components don't render
+    
+    **Solutions:**
+    - Verify the key is prefixed with `NEXT_PUBLIC_`
+    - Check for extra spaces or quotes in `.env.local`
+    - Restart your development server after adding the key
+    - Confirm the key hasn't been revoked in your Tambo dashboard
+  </Accordion>
+  
+  <Accordion title="Gemini rate limit exceeded">
+    **Symptoms:** API errors in console, images fail to generate
+    
+    **Solutions:**
+    - Check your quota usage in Google AI Studio
+    - Implement request throttling in your app
+    - Upgrade to a paid tier if on free tier
+    - Consider caching generated images to reduce API calls
+  </Accordion>
+  
+  <Accordion title="ElevenLabs audio not playing">
+    **Symptoms:** Silent funeral mode, network errors in console
+    
+    **Solutions:**
+    - Verify API key has remaining character quota
+    - Check voice ID matches an available voice
+    - Test the voice ID directly in ElevenLabs dashboard
+    - Ensure your browser allows audio playback (check site permissions)
+    - Try a different voice model if Turbo v2.5 isn't available in your region
+  </Accordion>
+  
+  <Accordion title="Environment variables not loading">
+    **Symptoms:** All integrations fail, undefined API key errors
+    
+    **Solutions:**
+    - Ensure file is named exactly `.env.local` (not `.env` or `.env.development`)
+    - Place the file in your project root (same directory as `package.json`)
+    - Restart your development server with `npm run dev`
+    - Check for syntax errors in `.env.local` (no quotes, spaces around `=`, etc.)
+    - Verify the file isn't in `.gitignore` by mistake (it should be, but you need to create it locally)
+  </Accordion>
+</AccordionGroup>
+
+## Cost estimation
+
+All three services have generous free tiers suitable for development:
+
+| Service | Free Tier | Typical WalletWake Usage | Estimated Cost |
+|---------|-----------|--------------------------|----------------|
+| Tambo | Varies by plan | 1 request per chat message | Check tambo.ai pricing |
+| Gemini | 60 requests/min | 2 requests per funeral (text + image) | Free for moderate use |
+| ElevenLabs | 10,000 chars/month | ~10 chars per eulogy | Free for ~1,000 funerals/month |
+
+<Warning>
+  Monitor your usage in each service's dashboard. Set up billing alerts to avoid unexpected charges if you exceed free tier limits.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Environment variables" icon="sliders" href="/configuration/environment-variables">
+    Complete reference for all environment variables
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get WalletWake running with your new API keys
+  </Card>
+</CardGroup>
