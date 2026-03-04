@@ -1,0 +1,103 @@
+{
+  "projectType": "saas",
+  "projectName": "WalletWake",
+  "projectDescription": "A fully chat-driven impulse buy intervention app that shows you the real cost of purchases with a 48-hour cooling-off period.",
+  "theme": "willow",
+  "primaryColor": "#E8A87C",
+  "lightColor": "#F5E6D3",
+  "darkColor": "#C97C47",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "installation"]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/chat-interface",
+              "features/funeral-mode",
+              "features/generative-components",
+              "features/48-hour-intervention"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "components/funeral-ticket",
+              "components/roast-receipt",
+              "components/spending-insight",
+              "components/impulse-score",
+              "components/alternative-suggestion"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment-variables",
+              "configuration/api-keys"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/generate-image",
+              "api/instant-eulogy",
+              "api/ebay-search"
+            ]
+          },
+          {
+            "group": "Tools",
+            "pages": [
+              "api/calculate-real-cost",
+              "api/search-products"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "groups": [
+          {
+            "group": "Technical Design",
+            "pages": [
+              "architecture/overview",
+              "architecture/tambo-integration",
+              "architecture/state-management"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Fully chat-driven interface powered by Tambo Generative UI",
+    "5 generative AI components (funeral ticket, roast receipt, spending insight, impulse score, alternatives)",
+    "48-hour intervention period with countdown timer",
+    "AI-generated gloomy product images",
+    "Spoken eulogies via ElevenLabs text-to-speech",
+    "Real-cost calculations (ramen, coffee, work hours equivalents)",
+    "GSAP-animated alternatives carousel",
+    "Product search and price analysis"
+  ],
+  "publicApiSurface": [
+    "POST /api/generate-image - Generate gloomy product images",
+    "POST /api/instant-eulogy - Generate spoken eulogies",
+    "GET /api/ebay/search - Search products via eBay API",
+    "calculate_real_cost - Tool: Convert prices to real-world equivalents",
+    "search_products - Tool: Search product catalog",
+    "FuneralTicket - Component: Warning ticket for purchase intent",
+    "RoastReceipt - Component: Sarcastic receipt breakdown",
+    "SpendingInsight - Component: Real-world price perspective",
+    "ImpulseScore - Component: Purchase danger rating (1-10)",
+    "AlternativeSuggestion - Component: Cheaper alternatives list"
+  ]
+}
